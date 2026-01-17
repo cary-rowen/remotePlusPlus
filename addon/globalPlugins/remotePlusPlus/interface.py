@@ -582,7 +582,7 @@ class ConnectionManagerDialog(wx.Dialog):
 		self.list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.on_selection_change)
 		self.list.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
 		self.list.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_context_menu)
-		self.list.Bind(wx.EVT_KEY_DOWN, self._onListKeyDown)
+		self.list.Bind(wx.EVT_CHAR_HOOK, self._onListKeyDown)
 
 		sizerHelper.addItem(self.list, proportion=1, flag=wx.EXPAND | wx.ALL)
 
