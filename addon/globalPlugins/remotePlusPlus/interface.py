@@ -893,6 +893,58 @@ class ConnectionManagerDialog(wx.Dialog):
 		dlg.Destroy()
 		self.refresh_groups()
 
+	def on_set_as_auto_connect(self, evt: wx.CommandEvent) -> None:
+		"""Set the selected connection as the auto-connect configuration."""
+		conn = self.get_selected_connection()
+		if not conn:
+			return
+
+		mode_labels = {
+			# Translators: Mode label for controlling another computer.
+			"leader": pgettext("remote", "Controlling another computer"),
+			# Translators: Mode label for allowing this computer to be controlled.
+			"follower": pgettext("remote", "Allowing this computer to be controlled"),
+		}
+		mode_display = mode_labels.get(conn["mode"], conn["mode"])
+		# Translators: Display text for a locally hosted server in dialogs.
+		if conn.get("selfHosted", False):
+			host_display = _("Local Server")
+		elif conn["port"] != 6837:
+			host_display = f"{conn['host']}:{conn['port']}"
+		else:
+			host_display = conn["host"]
+
+		if self.service.isAutoConnectEnabled():
+			# Translators: Confirmation message when replacing existing auto-connect configuration.
+			msg = _(
+				"Replace the current auto-connect configuration with this connection?\n\n"
+				"Name: {name}\n"
+				"Host: {host}\n"
+				"Mode: {mode}"
+			).format(name=conn["name"], host=host_display, mode=mode_display)
+		else:
+			# Translators: Confirmation message when enabling auto-connect for the first time.
+			msg = _(
+				"Set this connection as auto-connect and enable automatic connection at startup?\n\n"
+				"Name: {name}\n"
+				"Host: {host}\n"
+				"Mode: {mode}"
+			).format(name=conn["name"], host=host_display, mode=mode_display)
+
+		confirmDialog = MessageDialog(
+			self,
+			message=msg,
+			# Translators: Title of the dialog for setting auto-connect.
+			title=_("Set as Auto-Connect"),
+			dialogType=DialogType.STANDARD,
+			buttons=(DefaultButton.YES, DefaultButton.NO),
+		)
+		if confirmDialog.ShowModal() == ReturnCode.YES:
+			self.service.setAsAutoConnect(conn)
+			# Translators: Message announced when the connection is set as auto-connect.
+			ui.message(_("Auto-connect configuration saved"))
+
+
 	def on_context_menu(self, evt: wx.CommandEvent | wx.ListEvent) -> None:
 		count = self._getSelectedCount()
 		if count == 0:
@@ -914,6 +966,9 @@ class ConnectionManagerDialog(wx.Dialog):
 		# Translators: Context menu item to copy the connection link.
 		copyItem = menu.Append(wx.ID_ANY, _("Copy &link"))
 		copyItem.Enable(is_single)
+		# Translators: Context menu item to set the selected connection as auto-connect configuration.
+		setAutoConnectItem = menu.Append(wx.ID_ANY, _("Set as &Auto-Connect"))
+		setAutoConnectItem.Enable(is_single)
 		menu.AppendSeparator()
 		# Translators: Context menu item to move the selected connection up. Alt+Up is the shortcut.
 		moveUpItem = menu.Append(wx.ID_ANY, _("Move &Up\tAlt+Up"))
@@ -929,6 +984,7 @@ class ConnectionManagerDialog(wx.Dialog):
 		menu.Bind(wx.EVT_MENU, self.on_connect_reversed, connectReversedItem)
 		menu.Bind(wx.EVT_MENU, self.on_edit, editItem)
 		menu.Bind(wx.EVT_MENU, self.on_copy_link, copyItem)
+		menu.Bind(wx.EVT_MENU, self.on_set_as_auto_connect, setAutoConnectItem)
 		menu.Bind(wx.EVT_MENU, self.on_move_up, moveUpItem)
 		menu.Bind(wx.EVT_MENU, self.on_move_down, moveDownItem)
 		menu.Bind(wx.EVT_MENU, self.on_delete, deleteItem)

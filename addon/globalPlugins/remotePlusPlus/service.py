@@ -15,6 +15,7 @@ from typing import Any
 import json
 import os
 import uuid
+import config
 from logHandler import log
 import globalVars
 import _remoteClient
@@ -456,3 +457,28 @@ class RemoteService:
 		"""Check if the user has enabled confirmation for disconnecting as follower."""
 		conf = _remoteClient.configuration.getRemoteConfig().get("ui", {})
 		return conf.get("confirmDisconnectAsFollower", True)
+
+	def isAutoConnectEnabled(self) -> bool:
+		"""Check if auto-connect is currently enabled in config."""
+		conf = self.getControlServerConfig()
+		return conf.get("autoconnect", False) if conf else False
+
+	def setAsAutoConnect(self, conn: dict[str, Any]) -> None:
+		"""Set a connection as the auto-connect configuration.
+
+		:param conn: Connection dictionary from the connection manager.
+		"""
+		controlServer = config.conf["remote"]["controlServer"]
+		controlServer["autoconnect"] = True
+		controlServer["selfHosted"] = conn.get("selfHosted", False)
+		controlServer["connectionMode"] = 1 if conn["mode"] == "leader" else 0
+		controlServer["key"] = conn["key"]
+
+		if conn.get("selfHosted", False):
+			controlServer["port"] = conn["port"]
+		else:
+			# Format host with port if non-default
+			host = conn["host"]
+			if conn["port"] != 6837:
+				host = f"{host}:{conn['port']}"
+			controlServer["host"] = host
