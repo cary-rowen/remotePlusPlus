@@ -32,10 +32,20 @@ The Connection Manager provides a convenient interface for managing your remote 
 | Connect with reversed mode | `Shift+Enter` |
 | Move connection up | `Alt+Up` |
 | Move connection down | `Alt+Down` |
+| Edit connection | `F2` |
+| Delete connection | `Delete` |
+| Select all | `Ctrl+A` |
 
 ### Context Menu
 
-Right-click on a connection to access additional options including edit, copy link, move, delete, and etc.
+Right-click on a connection to access additional options:
+
+* Connect / Connect Reversed
+* Edit
+* Copy link
+* Set as Auto-Connect
+* Move Up / Move Down
+* Delete
 
 ## Keyboard Shortcuts
 
