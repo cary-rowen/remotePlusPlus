@@ -11,6 +11,7 @@ connection management, and quick connect to default server.
 
 from __future__ import annotations
 
+import addonHandler
 import globalVars
 import globalPluginHandler
 import inputCore
@@ -25,6 +26,7 @@ from .service import RemoteService
 from . import interface
 from .interface import ConnectionManagerDialog
 
+addonHandler.initTranslation()
 
 def disableInSecureMode(decoratedCls: type) -> type:
 	"""Class decorator to disable the add-on on secure desktop.

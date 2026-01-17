@@ -10,6 +10,7 @@ Handles wxPython menu injection and message dialogs.
 
 from __future__ import annotations
 
+import addonHandler
 from typing import Any, Callable, TYPE_CHECKING
 import random
 import wx
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
 
 from .service import RemoteService
 
+addonHandler.initTranslation()
 
 def generate_key() -> str:
 	"""Generate a random 7-digit connection key.

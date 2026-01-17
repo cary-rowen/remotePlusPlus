@@ -11,6 +11,7 @@ and connection state management. This module should remain UI-agnostic.
 
 from __future__ import annotations
 
+import addonHandler
 from typing import Any
 import json
 import os
@@ -23,6 +24,7 @@ from _remoteClient.connectionInfo import ConnectionInfo, ConnectionMode
 from _remoteClient.protocol import addressToHostPort
 from config.configFlags import RemoteConnectionMode
 
+addonHandler.initTranslation()
 
 class ConnectionManager:
 	"""Manages saved remote connections and groups."""
