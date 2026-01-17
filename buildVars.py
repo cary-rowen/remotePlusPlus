@@ -26,7 +26,10 @@ addon_info = AddonInfo(
 	addon_version="0.3.0",
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog=_("""Initial Version."""),
+	addon_changelog=_("""## 0.3.0
+* Added keyboard shortcuts: F2 for edit, Delete for delete, and Control+A for select all.
+* Fixed Shift+Enter not triggering connect reversed in the connection list.
+* Added ability to set a connection as the auto-connect configuration from the context menu."""),
 	# Author(s)
 	addon_author="Cary-rowen <manchen_0528@outlook.com>",
 	# URL for the add-on documentation support
