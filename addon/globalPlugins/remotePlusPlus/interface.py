@@ -996,17 +996,37 @@ class ConnectionManagerDialog(wx.Dialog):
 		"""Handle keyboard shortcuts in list."""
 		keyCode = evt.GetKeyCode()
 
+		# Shift+Enter: Connect Reversed
 		if evt.ShiftDown() and not evt.ControlDown() and not evt.AltDown():
 			if keyCode in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
 				self.on_connect_reversed(None)
 				return
 
+		# Alt+Up/Down: Move connection
 		if evt.AltDown() and not evt.ControlDown() and not evt.ShiftDown():
 			if keyCode == wx.WXK_UP:
 				self.on_move_up(None)
 				return
 			elif keyCode == wx.WXK_DOWN:
 				self.on_move_down(None)
+				return
+
+		# Ctrl+A: Select All
+		if evt.ControlDown() and not evt.AltDown() and not evt.ShiftDown():
+			if keyCode == ord("A"):
+				for i in range(self.list.GetItemCount()):
+					self.list.Select(i)
+				return
+
+		# Plain keys (no modifiers)
+		if not evt.ControlDown() and not evt.AltDown() and not evt.ShiftDown():
+			# F2: Edit
+			if keyCode == wx.WXK_F2:
+				self.on_edit(None)
+				return
+			# Delete: Delete
+			if keyCode == wx.WXK_DELETE:
+				self.on_delete(None)
 				return
 
 		evt.Skip()
