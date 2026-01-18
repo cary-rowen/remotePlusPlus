@@ -211,7 +211,7 @@ def show_switch_to_default_dialog(service: RemoteService) -> bool:
 
 	currentMode = (
 		RemoteConnectionMode.LEADER
-		if current_info.mode == ConnectionMode.LEADER
+		if currentInfo.mode == ConnectionMode.LEADER
 		else RemoteConnectionMode.FOLLOWER
 	)
 	# Translators: Display text for a locally hosted server in connection dialogs.
