@@ -7,9 +7,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: 'remotePlusPlus' '0.3.0'\n"
-"Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
-"POT-Creation-Date: 2026-01-18 15:59+0800\n"
-"PO-Revision-Date: 2026-01-18 16:02+0800\n"
+"Report-Msgid-Bugs-To: nvda-translations@groups.io\n"
+"POT-Creation-Date: 2026-01-18 08:35+0000\n"
+"PO-Revision-Date: 2026-01-18 16:37+0800\n"
 "Last-Translator: 完美很难 <1872265132@qq.com>\n"
 "Language-Team: \n"
 "Language: zh_CN\n"
@@ -19,46 +19,46 @@ msgstr ""
 "X-Generator: Poedit 3.8\n"
 
 #. Translators: Title of an error dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:53
+#: addon/globalPlugins/remotePlusPlus/interface.py:53
 msgid "Error"
 msgstr "错误"
 
 #. Translators: Menu item to open Remote Connection Manager dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:99
+#: addon/globalPlugins/remotePlusPlus/interface.py:99
 msgid "Connection Ma&nager..."
 msgstr "连接管理器(&N)..."
 
 #. Translators: Menu item to swap NVDA Remote control modes (between leader and follower).
-#: addon\globalPlugins\remotePlusPlus\interface.py:103
+#: addon/globalPlugins/remotePlusPlus/interface.py:103
 msgid "S&wap Control Mode"
 msgstr "交换控制模式(&W)"
 
 #. Translators: Menu item to connect to the default configured server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:108
+#: addon/globalPlugins/remotePlusPlus/interface.py:108
 msgid "Connect &to Default Server"
 msgstr "连接到默认服务器(&T)"
 
 #. Translators: Title of the dialog confirming disconnection when swapping Remote Access modes.
-#: addon\globalPlugins\remotePlusPlus\interface.py:180
+#: addon/globalPlugins/remotePlusPlus/interface.py:180
 msgctxt "remote"
 msgid "Confirm Disconnection"
 msgstr "确认断开连接"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:184
+#: addon/globalPlugins/remotePlusPlus/interface.py:184
 msgctxt "remote"
 msgid "Are you sure you want to disconnect from the Remote Access session?"
 msgstr "您确定要断开远程访问会话的连接吗？"
 
 #. Translators: Display text for a locally hosted server in connection dialogs.
 #. Translators: Display text for a locally hosted server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:210
-#: addon\globalPlugins\remotePlusPlus\interface.py:218
-#: addon\globalPlugins\remotePlusPlus\interface.py:680
-#: addon\globalPlugins\remotePlusPlus\interface.py:900
+#: addon/globalPlugins/remotePlusPlus/interface.py:210
+#: addon/globalPlugins/remotePlusPlus/interface.py:218
+#: addon/globalPlugins/remotePlusPlus/interface.py:680
+#: addon/globalPlugins/remotePlusPlus/interface.py:900
 msgid "Local Server"
 msgstr "本地服务器"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:224
+#: addon/globalPlugins/remotePlusPlus/interface.py:224
 #, python-brace-format
 msgid ""
 "Connect to default server: {targetHost} ({targetMode})\n"
@@ -74,229 +74,227 @@ msgstr ""
 "是否继续？"
 
 #. Translators: Title of the dialog for switching to default connection server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:238
+#: addon/globalPlugins/remotePlusPlus/interface.py:238
 msgid "Switch to Default Connection"
 msgstr "切换到默认连接"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:263
+#: addon/globalPlugins/remotePlusPlus/interface.py:263
 msgid "&Name:"
 msgstr "名称(&N)："
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:268
+#: addon/globalPlugins/remotePlusPlus/interface.py:268
 msgctxt "remote"
 msgid "&Server:"
 msgstr "服务器(&S)"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:285
+#: addon/globalPlugins/remotePlusPlus/interface.py:285
 msgid "&Host:"
 msgstr "主机(&H)"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:290
+#: addon/globalPlugins/remotePlusPlus/interface.py:290
 msgctxt "remote"
 msgid "&Key:"
 msgstr "密钥(&K)："
 
 #. Translators: Button to generate a random connection key.
-#: addon\globalPlugins\remotePlusPlus\interface.py:296
+#: addon/globalPlugins/remotePlusPlus/interface.py:296
 msgid "&Generate Key"
 msgstr "生成秘钥(&G)"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:302
+#: addon/globalPlugins/remotePlusPlus/interface.py:302
 msgid "&Port:"
 msgstr "端口(&P):"
 
 #. Translators: Mode choice for controlling another computer.
 #. Translators: Mode label for controlling another computer.
-#: addon\globalPlugins\remotePlusPlus\interface.py:308
-#: addon\globalPlugins\remotePlusPlus\interface.py:669
-#: addon\globalPlugins\remotePlusPlus\interface.py:893
+#: addon/globalPlugins/remotePlusPlus/interface.py:308
+#: addon/globalPlugins/remotePlusPlus/interface.py:669
+#: addon/globalPlugins/remotePlusPlus/interface.py:893
 msgctxt "remote"
 msgid "Controlling another computer"
 msgstr "控制另一台计算机"
 
 #. Translators: Mode choice for allowing this computer to be controlled.
 #. Translators: Mode label for allowing this computer to be controlled.
-#: addon\globalPlugins\remotePlusPlus\interface.py:310
-#: addon\globalPlugins\remotePlusPlus\interface.py:671
-#: addon\globalPlugins\remotePlusPlus\interface.py:895
+#: addon/globalPlugins/remotePlusPlus/interface.py:310
+#: addon/globalPlugins/remotePlusPlus/interface.py:671
+#: addon/globalPlugins/remotePlusPlus/interface.py:895
 msgctxt "remote"
 msgid "Allowing this computer to be controlled"
 msgstr "允许此计算机被控制"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:318
+#: addon/globalPlugins/remotePlusPlus/interface.py:318
 msgctxt "remote"
 msgid "&Mode:"
 msgstr "模式(&M)"
 
 #. Translators: Error message when required fields are empty.
-#: addon\globalPlugins\remotePlusPlus\interface.py:358
+#: addon/globalPlugins/remotePlusPlus/interface.py:358
 msgid "Please fill in Name, Host and Key."
 msgstr "请填写名称、主机和密钥。"
 
 #. Translators: Error message when name or key is empty.
-#: addon\globalPlugins\remotePlusPlus\interface.py:371
+#: addon/globalPlugins/remotePlusPlus/interface.py:371
 msgid "Please fill in Name and Key."
 msgstr "请填写名称和密钥。"
 
 #. Translators: Error message when port number is invalid.
-#: addon\globalPlugins\remotePlusPlus\interface.py:376
+#: addon/globalPlugins/remotePlusPlus/interface.py:376
 msgid "Port must be a number between 1 and 65535."
 msgstr "端口必须是 1 到 65535 之间的数字。"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:394
+#: addon/globalPlugins/remotePlusPlus/interface.py:394
 msgid "Manage Groups"
 msgstr "管理分组"
 
 #. Translators: Button to create a new group.
 #. Translators: Button to create a new connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:413
-#: addon\globalPlugins\remotePlusPlus\interface.py:600
+#: addon/globalPlugins/remotePlusPlus/interface.py:413
+#: addon/globalPlugins/remotePlusPlus/interface.py:600
 msgid "&New..."
 msgstr "新建(&N)..."
 
 #. Translators: Button to rename a group.
-#: addon\globalPlugins\remotePlusPlus\interface.py:418
+#: addon/globalPlugins/remotePlusPlus/interface.py:418
 msgid "&Rename..."
 msgstr "重命名(&R)..."
 
 #. Translators: Button to delete a group.
 #. Translators: Button to delete the selected connection.
-#. Translators: Context menu item to delete the selected connection(s).
-#: addon\globalPlugins\remotePlusPlus\interface.py:424
-#: addon\globalPlugins\remotePlusPlus\interface.py:609
-#: addon\globalPlugins\remotePlusPlus\interface.py:970
+#: addon/globalPlugins/remotePlusPlus/interface.py:424
+#: addon/globalPlugins/remotePlusPlus/interface.py:609
 msgid "&Delete"
 msgstr "删除(&D)"
 
 #. Translators: Button to close the dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:432
-#: addon\globalPlugins\remotePlusPlus\interface.py:614
+#: addon/globalPlugins/remotePlusPlus/interface.py:432
+#: addon/globalPlugins/remotePlusPlus/interface.py:614
 msgid "&Close"
 msgstr "关闭(&C)"
 
 #. Translators: Prompt for entering a new group name.
-#: addon\globalPlugins\remotePlusPlus\interface.py:463
+#: addon/globalPlugins/remotePlusPlus/interface.py:463
 msgid "Enter new group name:"
 msgstr "输入新分组名称："
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:463
+#: addon/globalPlugins/remotePlusPlus/interface.py:463
 msgid "New Group"
 msgstr "新建分组"
 
 #. Translators: Error when a group with the same name already exists.
-#: addon\globalPlugins\remotePlusPlus\interface.py:473
+#: addon/globalPlugins/remotePlusPlus/interface.py:473
 msgid "Group already exists or invalid."
 msgstr "分组已存在或无效。"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:485
+#: addon/globalPlugins/remotePlusPlus/interface.py:485
 msgid "Enter new name:"
 msgstr "输入新名称："
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:485
+#: addon/globalPlugins/remotePlusPlus/interface.py:485
 msgid "Rename Group"
 msgstr "重命名分组"
 
 #. Translators: Error when trying to rename to an existing group name.
-#: addon\globalPlugins\remotePlusPlus\interface.py:492
+#: addon/globalPlugins/remotePlusPlus/interface.py:492
 msgid "Group name already exists."
 msgstr "分组名称已存在。"
 
 #. Translators: Confirmation message when deleting a single group.
-#: addon\globalPlugins\remotePlusPlus\interface.py:506
+#: addon/globalPlugins/remotePlusPlus/interface.py:506
 #, python-brace-format
 msgid "Delete group '{group}'? Connections will be moved to Default."
 msgstr "是否删除分组“{group}”？其中的连接将被移至默认分组。"
 
 #. Translators: Confirmation message when deleting multiple groups.
-#: addon\globalPlugins\remotePlusPlus\interface.py:511
+#: addon/globalPlugins/remotePlusPlus/interface.py:511
 #, python-brace-format
 msgid "Delete {count} selected groups? Connections will be moved to Default."
 msgstr "是否删除 {count} 个选中分组？其中的连接将被移至默认分组。"
 
 #. Translators: Title of the confirmation dialog for deleting connections.
-#: addon\globalPlugins\remotePlusPlus\interface.py:518
-#: addon\globalPlugins\remotePlusPlus\interface.py:858
+#: addon/globalPlugins/remotePlusPlus/interface.py:518
+#: addon/globalPlugins/remotePlusPlus/interface.py:858
 msgid "Confirm Delete"
 msgstr "确认删除"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:534
+#: addon/globalPlugins/remotePlusPlus/interface.py:534
 msgid "Remote Connection Manager"
 msgstr "远程连接管理器"
 
 #. Translators: Label for the group dropdown in the connection manager.
-#: addon\globalPlugins\remotePlusPlus\interface.py:550
+#: addon/globalPlugins/remotePlusPlus/interface.py:550
 msgid "&Group:"
 msgstr "分组(&G)："
 
 #. Translators: Button to open the group management dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:557
+#: addon/globalPlugins/remotePlusPlus/interface.py:557
 msgid "&Manage Groups..."
 msgstr "管理分组(&M)..."
 
 #. Translators: Label for the search field in the connection manager.
-#: addon\globalPlugins\remotePlusPlus\interface.py:565
+#: addon/globalPlugins/remotePlusPlus/interface.py:565
 msgid "&Search:"
 msgstr "搜索(&S)："
 
 #. Translators: Label for the connections list in the connection manager.
-#: addon\globalPlugins\remotePlusPlus\interface.py:572
+#: addon/globalPlugins/remotePlusPlus/interface.py:572
 msgid "&All connections:"
 msgstr "连接(&A)："
 
 #. Translators: Column header for connection name.
-#: addon\globalPlugins\remotePlusPlus\interface.py:577
+#: addon/globalPlugins/remotePlusPlus/interface.py:577
 msgid "Name"
 msgstr "名称"
 
 #. Translators: Column header for connection host.
-#: addon\globalPlugins\remotePlusPlus\interface.py:579
+#: addon/globalPlugins/remotePlusPlus/interface.py:579
 msgid "Host"
 msgstr "主机"
 
 #. Translators: Column header for connection mode.
-#: addon\globalPlugins\remotePlusPlus\interface.py:581
+#: addon/globalPlugins/remotePlusPlus/interface.py:581
 msgctxt "remote"
 msgid "Mode"
 msgstr "模式"
 
 #. Translators: Checkbox to close the dialog after connecting.
-#: addon\globalPlugins\remotePlusPlus\interface.py:592
+#: addon/globalPlugins/remotePlusPlus/interface.py:592
 msgid "Close after connecting"
 msgstr "连接后关闭该窗口"
 
 #. Translators: Button to edit the selected connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:604
+#: addon/globalPlugins/remotePlusPlus/interface.py:604
 msgid "&Edit..."
 msgstr "编辑(&E)..."
 
 #. Translators: Title of the dialog to create a new connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:806
+#: addon/globalPlugins/remotePlusPlus/interface.py:806
 msgid "New Connection"
 msgstr "新建连接"
 
 #. Translators: Title of the dialog to edit a connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:834
+#: addon/globalPlugins/remotePlusPlus/interface.py:834
 msgid "Edit Connection"
 msgstr "编辑连接"
 
 #. Translators: Confirmation message when deleting a single connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:849
+#: addon/globalPlugins/remotePlusPlus/interface.py:849
 #, python-brace-format
 msgid "Delete connection '{name}'?"
 msgstr "是否删除连接“{name}”？"
 
 #. Translators: Confirmation message when deleting multiple connections.
-#: addon\globalPlugins\remotePlusPlus\interface.py:852
+#: addon/globalPlugins/remotePlusPlus/interface.py:852
 #, python-brace-format
 msgid "Delete {count} selected connections?"
 msgstr "是否删除 {count} 个选中的连接？"
 
 #. Translators: Message announced when connection link is copied to clipboard.
-#: addon\globalPlugins\remotePlusPlus\interface.py:877
+#: addon/globalPlugins/remotePlusPlus/interface.py:877
 msgid "Copied link"
 msgstr "复制链接"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:909
+#: addon/globalPlugins/remotePlusPlus/interface.py:909
 #, python-brace-format
 msgid ""
 "Replace the current auto-connect configuration with this connection?\n"
@@ -311,7 +309,7 @@ msgstr ""
 "主机：{host}\n"
 "模式：{mode}"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:917
+#: addon/globalPlugins/remotePlusPlus/interface.py:917
 #, python-brace-format
 msgid ""
 "Set this connection as auto-connect and enable automatic connection at "
@@ -328,93 +326,98 @@ msgstr ""
 "模式：{mode}"
 
 #. Translators: Title of the dialog for setting auto-connect.
-#: addon\globalPlugins\remotePlusPlus\interface.py:927
+#: addon/globalPlugins/remotePlusPlus/interface.py:927
 msgid "Set as Auto-Connect"
 msgstr "设为自动连接"
 
 #. Translators: Message announced when the connection is set as auto-connect.
-#: addon\globalPlugins\remotePlusPlus\interface.py:934
+#: addon/globalPlugins/remotePlusPlus/interface.py:934
 msgid "Auto-connect configuration saved"
 msgstr "自动连接配置已保存"
 
 #. Translators: Context menu item to connect to the selected server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:946
+#: addon/globalPlugins/remotePlusPlus/interface.py:946
 msgid "&Connect"
 msgstr "连接(&C)"
 
 #. Translators: Context menu item to connect with reversed mode. Shift+Enter is the shortcut.
-#: addon\globalPlugins\remotePlusPlus\interface.py:949
+#: addon/globalPlugins/remotePlusPlus/interface.py:949
 msgid "Connect &Reversed\tShift+Enter"
 msgstr "以反向模式连接(&R)\tShift+回车"
 
 #. Translators: Context menu item to edit the selected connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:953
-msgid "&Edit"
-msgstr "编辑(&E)"
+#: addon/globalPlugins/remotePlusPlus/interface.py:953
+msgid "&Edit\tF2"
+msgstr "编辑(&E)\tF2"
 
 #. Translators: Context menu item to copy the connection link.
-#: addon\globalPlugins\remotePlusPlus\interface.py:956
-msgid "Copy &link"
-msgstr "复制链接(&L)"
+#: addon/globalPlugins/remotePlusPlus/interface.py:956
+msgid "Copy &link\tCtrl+C"
+msgstr "复制链接(&L)\tCtrl+C"
 
 #. Translators: Context menu item to set the selected connection as auto-connect configuration.
-#: addon\globalPlugins\remotePlusPlus\interface.py:959
+#: addon/globalPlugins/remotePlusPlus/interface.py:959
 msgid "Set as &Auto-Connect"
 msgstr "设为自动连接(&A)"
 
 #. Translators: Context menu item to move the selected connection up. Alt+Up is the shortcut.
-#: addon\globalPlugins\remotePlusPlus\interface.py:963
+#: addon/globalPlugins/remotePlusPlus/interface.py:963
 msgid "Move &Up\tAlt+Up"
 msgstr "上移(&U)\tAlt+上光标"
 
 #. Translators: Context menu item to move the selected connection down. Alt+Down is the shortcut.
-#: addon\globalPlugins\remotePlusPlus\interface.py:966
+#: addon/globalPlugins/remotePlusPlus/interface.py:966
 msgid "Move &Down\tAlt+Down"
 msgstr "下移(&D)\tAlt+下光标"
 
+#. Translators: Context menu item to delete the selected connection(s).
+#: addon/globalPlugins/remotePlusPlus/interface.py:970
+msgid "&Delete\tDel"
+msgstr "删除(&D)\tDel"
+
 #. Translators: Description of the script to open the Remote Connection Manager.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:92
+#: addon/globalPlugins/remotePlusPlus/__init__.py:92
 msgid "Opens the Remote Connection Manager."
 msgstr "打开远程连接管理器。"
 
-#: addon\globalPlugins\remotePlusPlus\__init__.py:93
-#: addon\globalPlugins\remotePlusPlus\__init__.py:126
-#: addon\globalPlugins\remotePlusPlus\__init__.py:160
+#: addon/globalPlugins/remotePlusPlus/__init__.py:93
+#: addon/globalPlugins/remotePlusPlus/__init__.py:126
+#: addon/globalPlugins/remotePlusPlus/__init__.py:160
 msgctxt "remote"
 msgid "Remote Access"
 msgstr "远程访问"
 
 #. Translators: Shown when action is unavailable because Remote Access is disabled.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:103
-#: addon\globalPlugins\remotePlusPlus\__init__.py:137
-#: addon\globalPlugins\remotePlusPlus\__init__.py:170
+#: addon/globalPlugins/remotePlusPlus/__init__.py:103
+#: addon/globalPlugins/remotePlusPlus/__init__.py:137
+#: addon/globalPlugins/remotePlusPlus/__init__.py:170
 msgctxt "remote"
 msgid "Action unavailable when Remote Access is disabled"
 msgstr "禁用远程访问时该操作不可用"
 
 #. Translators: Description of the script to swap NVDA Remote control modes.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:125
+#: addon/globalPlugins/remotePlusPlus/__init__.py:125
 msgid "Swaps the NVDA Remote control mode between Leader and Follower."
 msgstr "在控制/被控模式之间切换。"
 
 #. Translators: Shown when trying to perform an action that requires a connection.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:142
+#: addon/globalPlugins/remotePlusPlus/__init__.py:142
 msgctxt "remote"
 msgid "Not connected"
 msgstr "未连接"
 
 #. Translators: Description of the script to connect to the configured auto-connect server.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:159
+#: addon/globalPlugins/remotePlusPlus/__init__.py:159
 msgid "Connects to the configured auto-connect server."
 msgstr "连接到配置的自动连接服务器。"
 
 #. Translators: Shown when auto-connect parameters are not configured.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:175
+#: addon/globalPlugins/remotePlusPlus/__init__.py:175
 msgid "Auto-connect parameters not configured."
 msgstr "自动连接参数未配置。"
 
 #. Translators: Shown when already connected to the default server.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:184
+#: addon/globalPlugins/remotePlusPlus/__init__.py:184
 msgid "Already connected to default server."
 msgstr "已连接到默认服务器。"
 
@@ -435,18 +438,30 @@ msgstr "增强 NVDA 远程访问功能，为高级用户提供更高效的操作
 #. Translators: what's new content for the add-on version to be shown in the add-on store
 #: buildVars.py:29
 msgid ""
-"## 0.3.0\n"
-"* Added keyboard shortcuts: F2 for edit, Delete for delete, and Control+A "
-"for select all.\n"
-"* Fixed Shift+Enter not triggering connect reversed in the connection "
-"list.\n"
-"* Added ability to set a connection as the auto-connect configuration from "
-"the context menu."
+"## 0.4.0\n"
+"\n"
+"* Remove the \"Connect\" button from the Connection Manager dialog (keep in "
+"context menu).\n"
+"* Remove the \"Copy link\" button from the Connection Manager dialog (keep "
+"in context menu).\n"
+"* Add Ctrl+C keyboard shortcut for copy link functionality.\n"
+"* Gestures and accelerator keys have been changed; see the add-on "
+"documentation for details."
 msgstr ""
-"## 0.3.0\n"
-"* 新增键盘快捷键：F2 编辑，Delete 删除，Control+A 全选。\n"
-"* 修复 Shift+Enter 在连接列表中无法触发反向连接的问题。\n"
-"* 新增从上下文菜单将连接设置为自动连接配置的功能。"
+
+#~ msgid ""
+#~ "## 0.3.0\n"
+#~ "* Added keyboard shortcuts: F2 for edit, Delete for delete, and Control+A "
+#~ "for select all.\n"
+#~ "* Fixed Shift+Enter not triggering connect reversed in the connection "
+#~ "list.\n"
+#~ "* Added ability to set a connection as the auto-connect configuration "
+#~ "from the context menu."
+#~ msgstr ""
+#~ "## 0.3.0\n"
+#~ "* 新增键盘快捷键：F2 编辑，Delete 删除，Control+A 全选。\n"
+#~ "* 修复 Shift+Enter 在连接列表中无法触发反向连接的问题。\n"
+#~ "* 新增从上下文菜单将连接设置为自动连接配置的功能。"
 
 #~ msgid "Close"
 #~ msgstr "关闭"
