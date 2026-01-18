@@ -23,13 +23,15 @@ addon_info = AddonInfo(
 	# Translators: Long description to be shown for this add-on on add-on information from add-on store
 	addon_description=_("""Enhances NVDA Remote with productivity features for power users."""),
 	# version
-	addon_version="0.3.0",
+	addon_version="0.4.0",
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog=_("""## 0.3.0
-* Added keyboard shortcuts: F2 for edit, Delete for delete, and Control+A for select all.
-* Fixed Shift+Enter not triggering connect reversed in the connection list.
-* Added ability to set a connection as the auto-connect configuration from the context menu."""),
+	addon_changelog=_("""## 0.4.0
+
+* Remove the "Connect" button from the Connection Manager dialog (keep in context menu).
+* Remove the "Copy link" button from the Connection Manager dialog (keep in context menu).
+* Add Ctrl+C keyboard shortcut for copy link functionality.
+* Gestures and accelerator keys have been changed; see the add-on documentation for details."""),
 	# Author(s)
 	addon_author="Cary-rowen <manchen_0528@outlook.com>",
 	# URL for the add-on documentation support
