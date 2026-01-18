@@ -91,7 +91,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		# Translators: Description of the script to open the Remote Connection Manager.
 		description=_("Opens the Remote Connection Manager."),
 		category=pgettext("remote", "Remote Access"),
-		gesture="kb:NVDA+control+shift+M",
+		gesture="kb:NVDA+control+shift+N",
 	)
 	def script_showConnectionManager(self, gesture: inputCore.InputGesture) -> None:
 		self._performShowManager()
@@ -124,7 +124,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		# Translators: Description of the script to swap NVDA Remote control modes.
 		description=_("Swaps the NVDA Remote control mode between Leader and Follower."),
 		category=pgettext("remote", "Remote Access"),
-		gesture="kb:NVDA+control+shift+s",
+		gesture="kb:NVDA+control+shift+W",
 	)
 	def script_swapMode(self, gesture: inputCore.InputGesture) -> None:
 		self._performSwap()

@@ -96,11 +96,11 @@ class MenuHandler:
 		self._menuSep = menu.AppendSeparator()
 
 		# Translators: Menu item to open Remote Connection Manager dialog.
-		self._manageItem = menu.Append(wx.ID_ANY, _("Connection &Manager..."))
+		self._manageItem = menu.Append(wx.ID_ANY, _("Connection Ma&nager..."))
 		menu.Bind(wx.EVT_MENU, lambda evt: self.on_manage(), self._manageItem)
 
 		# Translators: Menu item to swap NVDA Remote control modes (between leader and follower).
-		self._swapItem = menu.Append(wx.ID_ANY, _("&Swap Control Mode"))
+		self._swapItem = menu.Append(wx.ID_ANY, _("S&wap Control Mode"))
 		menu.Bind(wx.EVT_MENU, lambda evt: self.on_swap(), self._swapItem)
 
 		if self.service.isAutoConnectConfigured():
@@ -562,14 +562,14 @@ class ConnectionManagerDialog(wx.Dialog):
 
 		searchSizer = wx.BoxSizer(wx.HORIZONTAL)
 		# Translators: Label for the search field in the connection manager.
-		searchSizer.Add(wx.StaticText(self, label=_("Searc&h:")), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+		searchSizer.Add(wx.StaticText(self, label=_("&Search:")), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 		self.searchCtrl = wx.TextCtrl(self)
 		self.searchCtrl.Bind(wx.EVT_TEXT, self.on_search)
 		searchSizer.Add(self.searchCtrl, 1, wx.EXPAND | wx.ALL, 5)
 		sizerHelper.addItem(searchSizer)
 
 		# Translators: Label for the connections list in the connection manager.
-		connectionsLabel = wx.StaticText(self, label=_("Connection&s:"))
+		connectionsLabel = wx.StaticText(self, label=_("&All connections:"))
 		sizerHelper.addItem(connectionsLabel)
 
 		self.list = wx.ListCtrl(self, style=wx.LC_REPORT)
@@ -611,7 +611,7 @@ class ConnectionManagerDialog(wx.Dialog):
 		self.delBtn.Disable()
 
 		# Translators: Button to close the dialog.
-		closeBtn = buttonHelper.addButton(self, id=wx.ID_CLOSE, label=_("Close"))
+		closeBtn = buttonHelper.addButton(self, id=wx.ID_CLOSE, label=_("&Close"))
 		closeBtn.Bind(wx.EVT_BUTTON, lambda e: self.Close())
 
 		sizerHelper.addDialogDismissButtons(buttonHelper, separated=True)

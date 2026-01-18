@@ -52,8 +52,8 @@ Right-click on a connection to access additional options:
 
 | Command | Gesture |
 |---------|---------|
-| Open Connection Manager | `NVDA+Control+Shift+M` |
-| Swap Control Mode | `NVDA+Control+Shift+S` |
+| Open Connection Manager | `NVDA+Control+Shift+N` |
+| Swap Control Mode | `NVDA+Control+Shift+W` |
 | Connect to Default Server | None |
 
 ## Menu Items

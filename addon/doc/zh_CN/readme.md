@@ -53,8 +53,8 @@
 
 | 命令 | 手势 |
 |------|------|
-| 打开连接管理器 | `NVDA+Control+Shift+M` |
-| 交换控制模式 | `NVDA+Control+Shift+S` |
+| 打开连接管理器 | `NVDA+Control+Shift+N` |
+| 交换控制模式 | `NVDA+Control+Shift+W` |
 | 连接到默认服务器 | 无 |
 
 ## 菜单项
