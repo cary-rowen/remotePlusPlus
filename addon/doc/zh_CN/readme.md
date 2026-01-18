@@ -1,4 +1,4 @@
-# Remote PlusPlus
+# Remote++
 
 增强 NVDA 远程访问功能，为高级用户提供更高效的操作体验。
 
