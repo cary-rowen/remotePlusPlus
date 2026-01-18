@@ -950,10 +950,10 @@ class ConnectionManagerDialog(wx.Dialog):
 		connectReversedItem.Enable(is_single)
 		menu.AppendSeparator()
 		# Translators: Context menu item to edit the selected connection.
-		editItem = menu.Append(wx.ID_ANY, _("&Edit"))
+		editItem = menu.Append(wx.ID_ANY, _("&Edit\tF2"))
 		editItem.Enable(is_single)
 		# Translators: Context menu item to copy the connection link.
-		copyItem = menu.Append(wx.ID_ANY, _("Copy &link"))
+		copyItem = menu.Append(wx.ID_ANY, _("Copy &link\tCtrl+C"))
 		copyItem.Enable(is_single)
 		# Translators: Context menu item to set the selected connection as auto-connect configuration.
 		setAutoConnectItem = menu.Append(wx.ID_ANY, _("Set as &Auto-Connect"))
@@ -967,7 +967,7 @@ class ConnectionManagerDialog(wx.Dialog):
 		moveDownItem.Enable(is_single)
 		menu.AppendSeparator()
 		# Translators: Context menu item to delete the selected connection(s).
-		deleteItem = menu.Append(wx.ID_ANY, _("&Delete"))
+		deleteItem = menu.Append(wx.ID_ANY, _("&Delete\tDel"))
 
 		menu.Bind(wx.EVT_MENU, self.on_connect, connectItem)
 		menu.Bind(wx.EVT_MENU, self.on_connect_reversed, connectReversedItem)
