@@ -35,6 +35,7 @@ The Connection Manager provides a convenient interface for managing your remote 
 | Edit connection | `F2` |
 | Delete connection | `Delete` |
 | Select all | `Ctrl+A` |
+| Copy link | `Ctrl+C` |
 
 ### Context Menu
 

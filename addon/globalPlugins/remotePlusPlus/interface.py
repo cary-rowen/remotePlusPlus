@@ -596,12 +596,6 @@ class ConnectionManagerDialog(wx.Dialog):
 
 		buttonHelper = gui.guiHelper.ButtonHelper(wx.HORIZONTAL)
 
-		# Translators: Button to connect to the selected server.
-		self.connectBtn = buttonHelper.addButton(self, label=_("&Connect"))
-		self.connectBtn.Bind(wx.EVT_BUTTON, self.on_connect)
-		self.connectBtn.SetDefault()
-		self.connectBtn.Disable()
-
 		# Translators: Button to create a new connection.
 		newBtn = buttonHelper.addButton(self, label=_("&New..."))
 		newBtn.Bind(wx.EVT_BUTTON, self.on_new)
@@ -610,11 +604,6 @@ class ConnectionManagerDialog(wx.Dialog):
 		self.editBtn = buttonHelper.addButton(self, label=_("&Edit..."))
 		self.editBtn.Bind(wx.EVT_BUTTON, self.on_edit)
 		self.editBtn.Disable()
-
-		# Translators: Button to copy the connection link to clipboard.
-		self.copyBtn = buttonHelper.addButton(self, label=_("Copy &link"))
-		self.copyBtn.Bind(wx.EVT_BUTTON, self.on_copy_link)
-		self.copyBtn.Disable()
 
 		# Translators: Button to delete the selected connection.
 		self.delBtn = buttonHelper.addButton(self, label=_("&Delete"))
@@ -722,9 +711,7 @@ class ConnectionManagerDialog(wx.Dialog):
 		count = self._getSelectedCount()
 		has_single = count == 1
 		has_any = count > 0
-		self.connectBtn.Enable(has_single)
 		self.editBtn.Enable(has_single)
-		self.copyBtn.Enable(has_single)
 		self.delBtn.Enable(has_any)
 
 	def _getSelectedCount(self) -> int:
@@ -1013,11 +1000,15 @@ class ConnectionManagerDialog(wx.Dialog):
 				self.on_move_down(None)
 				return
 
-		# Ctrl+A: Select All
+		# Ctrl+A: Select All, Ctrl+C: Copy link
 		if evt.ControlDown() and not evt.AltDown() and not evt.ShiftDown():
 			if keyCode == ord("A"):
 				for i in range(self.list.GetItemCount()):
 					self.list.Select(i)
+				return
+			if keyCode == ord("C"):
+				if self._getSelectedCount() == 1:
+					self.on_copy_link(None)
 				return
 
 		# Plain keys (no modifiers)
