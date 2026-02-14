@@ -347,8 +347,8 @@ msgstr "以反向模式连接(&R)\tShift+回车"
 
 #. Translators: Context menu item to edit the selected connection.
 #: addon/globalPlugins/remotePlusPlus/interface.py:953
-msgid "&Edit\tF2"
-msgstr "编辑(&E)\tF2"
+msgid "&Edit...\tF2"
+msgstr "编辑...(&E)\tF2"
 
 #. Translators: Context menu item to copy the connection link.
 #: addon/globalPlugins/remotePlusPlus/interface.py:956

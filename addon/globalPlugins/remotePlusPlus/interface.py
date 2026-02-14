@@ -950,7 +950,7 @@ class ConnectionManagerDialog(wx.Dialog):
 		connectReversedItem.Enable(is_single)
 		menu.AppendSeparator()
 		# Translators: Context menu item to edit the selected connection.
-		editItem = menu.Append(wx.ID_ANY, _("&Edit\tF2"))
+		editItem = menu.Append(wx.ID_ANY, _("&Edit...\tF2"))
 		editItem.Enable(is_single)
 		# Translators: Context menu item to copy the connection link.
 		copyItem = menu.Append(wx.ID_ANY, _("Copy &link\tCtrl+C"))
