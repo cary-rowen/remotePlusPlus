@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 'remotePlusPlus' '0.4.0'\n"
 "Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
-"POT-Creation-Date: 2026-01-31 13:20+0100\n"
-"PO-Revision-Date: 2026-01-31 18:39+0100\n"
+"POT-Creation-Date: 2026-03-01 18:13+0100\n"
+"PO-Revision-Date: 2026-03-01 18:17+0100\n"
 "Last-Translator: NetB di Leonardo Marenda <posta@netb.pro>\n"
 "Language-Team: \n"
 "Language: it\n"
@@ -161,10 +161,8 @@ msgstr "&Rinomina..."
 
 #. Translators: Button to delete a group.
 #. Translators: Button to delete the selected connection.
-#. Translators: Context menu item to delete the selected connection(s).
 #: addon\globalPlugins\remotePlusPlus\interface.py:424
 #: addon\globalPlugins\remotePlusPlus\interface.py:609
-#: addon\globalPlugins\remotePlusPlus\interface.py:970
 msgid "&Delete"
 msgstr "&Elimina"
 
@@ -353,12 +351,12 @@ msgstr "Connetti &scambia\tShift+invio"
 
 #. Translators: Context menu item to edit the selected connection.
 #: addon\globalPlugins\remotePlusPlus\interface.py:953
-msgid "&Edit"
-msgstr "&Modifica"
+msgid "&Edit...\tF2"
+msgstr "&Modifica...\tF2"
 
 #. Translators: Context menu item to copy the connection link.
 #: addon\globalPlugins\remotePlusPlus\interface.py:956
-msgid "Copy &link"
+msgid "Copy &link\tCtrl+C"
 msgstr "Copia &link"
 
 #. Translators: Context menu item to set the selected connection as auto-connect configuration.
@@ -375,6 +373,11 @@ msgstr "Sposta &su\tAlt+freccia su"
 #: addon\globalPlugins\remotePlusPlus\interface.py:966
 msgid "Move &Down\tAlt+Down"
 msgstr "Sposta &giù\tAlt+freccia giù"
+
+#. Translators: Context menu item to delete the selected connection(s).
+#: addon\globalPlugins\remotePlusPlus\interface.py:970
+msgid "&Delete\tDel"
+msgstr "&Elimina"
 
 #. Translators: Description of the script to open the Remote Connection Manager.
 #: addon\globalPlugins\remotePlusPlus\__init__.py:92
@@ -462,3 +465,6 @@ msgstr ""
 "\\n\n"
 "* I gesti e le combinazioni da tastiera sono state modificate; vedere la "
 "documentazione del componente aggiuntivo per i dettagli."
+
+#~ msgid "&Edit"
+#~ msgstr "&Modifica"
