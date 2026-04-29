@@ -28,6 +28,7 @@ from .interface import ConnectionManagerDialog
 
 addonHandler.initTranslation()
 
+
 def disableInSecureMode(decoratedCls: type) -> type:
 	"""Class decorator to disable the add-on on secure desktop.
 
@@ -41,13 +42,15 @@ def disableInSecureMode(decoratedCls: type) -> type:
 
 @disableInSecureMode
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
-
 	def __init__(self) -> None:
 		super().__init__()
 		self.service = RemoteService()
 		self._manager_dialog: ConnectionManagerDialog | None = None
 		self.menu_handler = interface.MenuHandler(
-			self.service, self._performSwap, self._performConnectToDefault, self._performShowManager
+			self.service,
+			self._performSwap,
+			self._performConnectToDefault,
+			self._performShowManager,
 		)
 
 		# Monkey-patch _remoteClient to inject menu items when Remote is enabled/disabled
@@ -157,7 +160,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	@script(
 		# Translators: Description of the script to connect to the configured auto-connect server.
 		description=_("Connects to the configured auto-connect server."),
-		category=pgettext("remote", "Remote Access")
+		category=pgettext("remote", "Remote Access"),
 	)
 	def script_connectToDefault(self, gesture: inputCore.InputGesture) -> None:
 		self._performConnectToDefault()

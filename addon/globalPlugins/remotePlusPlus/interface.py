@@ -32,6 +32,7 @@ from .service import RemoteService
 
 addonHandler.initTranslation()
 
+
 def generate_key() -> str:
 	"""Generate a random 7-digit connection key.
 
@@ -59,7 +60,11 @@ class MenuHandler:
 	"""Manages the injection and state of custom menu items in the NVDA Remote menu."""
 
 	def __init__(
-		self, service: RemoteService, on_swap: Callable[[], None], on_connect_default: Callable[[], None], on_manage: Callable[[], None]
+		self,
+		service: RemoteService,
+		on_swap: Callable[[], None],
+		on_connect_default: Callable[[], None],
+		on_manage: Callable[[], None],
 	) -> None:
 		"""Initialize the menu handler.
 
@@ -223,7 +228,7 @@ def show_switch_to_default_dialog(service: RemoteService) -> bool:
 	msg = _(
 		"Connect to default server: {targetHost} ({targetMode})\n\n"
 		"This will disconnect the active session: {currentHost} ({currentMode})\n\n"
-		"Do you want to continue?"
+		"Do you want to continue?",
 	).format(
 		targetHost=targetHost,
 		targetMode=targetMode.displayString,
@@ -260,7 +265,9 @@ class ConnectionEditorDialog(wx.Dialog):
 
 		# Translators: Label for the name field in the connection editor dialog.
 		self.nameCtrl = sizerHelper.addLabeledControl(
-			_("&Name:"), wx.TextCtrl, value=self.initial_data.get("name", "")
+			_("&Name:"),
+			wx.TextCtrl,
+			value=self.initial_data.get("name", ""),
 		)
 
 		# Translators: Label for the server type choice in the connection editor dialog.
@@ -282,12 +289,17 @@ class ConnectionEditorDialog(wx.Dialog):
 
 		# Translators: Label for the host field in the connection editor dialog.
 		self.hostCtrl = sizerHelper.addLabeledControl(
-			_("&Host:"), wx.ComboBox, value=default_host, choices=history
+			_("&Host:"),
+			wx.ComboBox,
+			value=default_host,
+			choices=history,
 		)
 
 		# Translators: Label for the key field in the connection editor dialog.
 		keyLabel = sizerHelper.addLabeledControl(
-			pgettext("remote", "&Key:"), wx.TextCtrl, value=self.initial_data.get("key", "")
+			pgettext("remote", "&Key:"),
+			wx.TextCtrl,
+			value=self.initial_data.get("key", ""),
 		)
 		self.keyCtrl = keyLabel
 
@@ -299,7 +311,11 @@ class ConnectionEditorDialog(wx.Dialog):
 
 		# Translators: Label for the port field in the connection editor dialog.
 		self.portCtrl = sizerHelper.addLabeledControl(
-			_("&Port:"), SelectOnFocusSpinCtrl, min=1, max=65535, initial=self.initial_data.get("port", 6837)
+			_("&Port:"),
+			SelectOnFocusSpinCtrl,
+			min=1,
+			max=65535,
+			initial=self.initial_data.get("port", 6837),
 		)
 
 		self.modeChoices = ["leader", "follower"]
@@ -315,7 +331,9 @@ class ConnectionEditorDialog(wx.Dialog):
 
 		# Translators: Label for the mode choice in the connection editor dialog.
 		self.modeCtrl = sizerHelper.addLabeledControl(
-			pgettext("remote", "&Mode:"), wx.Choice, choices=modeLabels
+			pgettext("remote", "&Mode:"),
+			wx.Choice,
+			choices=modeLabels,
 		)
 		self.modeCtrl.SetSelection(selection)
 
@@ -482,7 +500,10 @@ class GroupManagerDialog(wx.Dialog):
 
 		# Translators: Prompt for entering a new name when renaming a group.
 		new_name = wx.GetTextFromUser(
-			_("Enter new name:"), _("Rename Group"), default_value=old_name, parent=self
+			_("Enter new name:"),
+			_("Rename Group"),
+			default_value=old_name,
+			parent=self,
 		)
 		if new_name and new_name != old_name:
 			if self.manager.renameGroup(old_name, new_name):
@@ -504,12 +525,12 @@ class GroupManagerDialog(wx.Dialog):
 		if len(groups_to_delete) == 1:
 			# Translators: Confirmation message when deleting a single group.
 			msg = _("Delete group '{group}'? Connections will be moved to Default.").format(
-				group=groups_to_delete[0]
+				group=groups_to_delete[0],
 			)
 		else:
 			# Translators: Confirmation message when deleting multiple groups.
 			msg = _("Delete {count} selected groups? Connections will be moved to Default.").format(
-				count=len(groups_to_delete)
+				count=len(groups_to_delete),
 			)
 
 		confirmDialog = MessageDialog(
@@ -523,8 +544,6 @@ class GroupManagerDialog(wx.Dialog):
 			for group in groups_to_delete:
 				self.manager.deleteGroup(group)
 			self.refresh_list()
-
-
 
 
 class ConnectionManagerDialog(wx.Dialog):
@@ -909,7 +928,7 @@ class ConnectionManagerDialog(wx.Dialog):
 				"Replace the current auto-connect configuration with this connection?\n\n"
 				"Name: {name}\n"
 				"Host: {host}\n"
-				"Mode: {mode}"
+				"Mode: {mode}",
 			).format(name=conn["name"], host=host_display, mode=mode_display)
 		else:
 			# Translators: Confirmation message when enabling auto-connect for the first time.
@@ -917,7 +936,7 @@ class ConnectionManagerDialog(wx.Dialog):
 				"Set this connection as auto-connect and enable automatic connection at startup?\n\n"
 				"Name: {name}\n"
 				"Host: {host}\n"
-				"Mode: {mode}"
+				"Mode: {mode}",
 			).format(name=conn["name"], host=host_display, mode=mode_display)
 
 		confirmDialog = MessageDialog(
@@ -932,7 +951,6 @@ class ConnectionManagerDialog(wx.Dialog):
 			self.service.setAsAutoConnect(conn)
 			# Translators: Message announced when the connection is set as auto-connect.
 			ui.message(_("Auto-connect configuration saved"))
-
 
 	def on_context_menu(self, evt: wx.CommandEvent | wx.ListEvent) -> None:
 		count = self._getSelectedCount()

@@ -13,7 +13,7 @@ Salva, organizza e connettiti rapidamente alle sessioni remote utilizzate di fre
 * Connettiti con un click dall'elenco
 * Copia negli appunti un link alla connessione
 
-### Scambio modalità di controllo 
+### Scambio modalità di controllo
 
 Passa istantaneamente dal ruolo di controllore a quello di controllato o viceversa, senza disconnettersi.
 
