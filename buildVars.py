@@ -23,15 +23,13 @@ addon_info = AddonInfo(
 	# Translators: Long description to be shown for this add-on on add-on information from add-on store
 	addon_description=_("""Enhances NVDA Remote with productivity features for power users."""),
 	# version
-	addon_version="0.4.0",
+	addon_version="0.4.1",
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog=_("""## 0.4.0
+	addon_changelog=_("""## 0.4.1
 
-* Remove the "Connect" button from the Connection Manager dialog (keep in context menu).
-* Remove the "Copy link" button from the Connection Manager dialog (keep in context menu).
-* Add Ctrl+C keyboard shortcut for copy link functionality.
-* Gestures and accelerator keys have been changed; see the add-on documentation for details."""),
+* L10n update.
+* Compatible with NVDA 2026.1."""),
 	# Author(s)
 	addon_author="Cary-rowen <manchen_0528@outlook.com>",
 	# URL for the add-on documentation support
@@ -43,7 +41,7 @@ addon_info = AddonInfo(
 	# Minimum NVDA version supported (e.g. "2019.3.0", minor version is optional)
 	addon_minimumNVDAVersion="2025.1.0",
 	# Last NVDA version supported/tested (e.g. "2024.4.0", ideally more recent than minimum version)
-	addon_lastTestedNVDAVersion="2025.3.2",
+	addon_lastTestedNVDAVersion="2026.1.0",
 	# Add-on update channel (default is None, denoting stable releases,
 	# and for development releases, use "dev".)
 	# Do not change unless you know what you are doing!
