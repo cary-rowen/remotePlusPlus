@@ -26,6 +26,7 @@ from config.configFlags import RemoteConnectionMode
 
 addonHandler.initTranslation()
 
+
 class ConnectionManager:
 	"""Manages saved remote connections and groups."""
 
