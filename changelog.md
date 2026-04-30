@@ -1,4 +1,3 @@
-## 0.4.1
+## 0.4.2
 
-* L10n update.
-* Compatible with NVDA 2026.1.
+Update template
