@@ -23,12 +23,12 @@ addon_info = AddonInfo(
 	# Translators: Long description to be shown for this add-on on add-on information from add-on store
 	addon_description=_("""Enhances NVDA Remote with productivity features for power users."""),
 	# version
-	addon_version="0.4.2",
+	addon_version="0.4.3",
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog=_("""## 0.4.2
+	addon_changelog=_("""## 0.4.3
 
-Update template"""),
+Fix duplicate disconnect confirmation dialogs."""),
 	# Author(s)
 	addon_author="Cary-rowen <manchen_0528@outlook.com>",
 	# URL for the add-on documentation support

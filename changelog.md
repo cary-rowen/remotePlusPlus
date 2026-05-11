@@ -1,3 +1,3 @@
-## 0.4.2
+## 0.4.3
 
-Update template
+Fix duplicate disconnect confirmation dialogs.
