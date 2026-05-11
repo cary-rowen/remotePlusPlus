@@ -17,7 +17,7 @@ import globalPluginHandler
 import inputCore
 from scriptHandler import script
 from gui.guiHelper import alwaysCallAfter
-from gui.message import MessageDialog
+from gui.message import MessageDialog, ReturnCode
 from logHandler import log
 import ui
 import _remoteClient
@@ -46,6 +46,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		super().__init__()
 		self.service = RemoteService()
 		self._manager_dialog: ConnectionManagerDialog | None = None
+		self._disconnectConfirmationDialog: MessageDialog | None = None
 		self.menu_handler = interface.MenuHandler(
 			self.service,
 			self._performSwap,
@@ -89,6 +90,30 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.menu_handler.remove()
 		self._closeManagerDialog()
 		self._orig_terminate()
+
+	def _confirmDisconnectForSwap(self) -> bool:
+		"""Ask whether to disconnect the current follower session before swapping."""
+		if self._disconnectConfirmationDialog:
+			try:
+				self._disconnectConfirmationDialog.Raise()
+				self._disconnectConfirmationDialog.SetFocus()
+			except RuntimeError:
+				self._disconnectConfirmationDialog = None
+			else:
+				return False
+
+		dialog = interface.create_disconnect_confirmation_dialog()
+		self._disconnectConfirmationDialog = dialog
+		try:
+			if dialog.ShowModal() != ReturnCode.YES:
+				log.info("Remote disconnection cancelled by user.")
+				return False
+		except Exception:
+			log.error("Error showing disconnect confirmation dialog", exc_info=True)
+			return False
+		finally:
+			self._disconnectConfirmationDialog = None
+		return True
 
 	@script(
 		# Translators: Description of the script to open the Remote Connection Manager.
@@ -150,7 +175,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		currentInfo = self.service.getCurrentConnectionInfo()
 		if currentInfo and currentInfo.mode == _remoteClient.connectionInfo.ConnectionMode.FOLLOWER:
 			if self.service.shouldConfirmDisconnectAsFollower():
-				if not interface.show_swap_confirmation_dialog():
+				if not self._confirmDisconnectForSwap():
 					return
 
 		if targetInfo:

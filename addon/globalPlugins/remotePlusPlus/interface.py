@@ -166,20 +166,16 @@ class MenuHandler:
 			self._connectDefaultItem.Enable(shouldEnable)
 
 
-def show_swap_confirmation_dialog() -> bool:
-	"""Show confirmation dialog for swapping control mode.
+def create_disconnect_confirmation_dialog() -> MessageDialog:
+	"""Create confirmation dialog for disconnecting before swapping control mode.
 
-	:return: True if the user confirmed, False otherwise.
+	:return: The confirmation dialog.
 	"""
-	if MessageDialog.blockingInstancesExist():
-		MessageDialog.focusBlockingInstances()
-		return False
-
 	confirmationButtons = (
 		DefaultButton.YES,
 		DefaultButton.NO.value._replace(defaultFocus=True, fallbackAction=True),
 	)
-	dialog = MessageDialog(
+	return MessageDialog(
 		parent=gui.mainFrame,
 		# Translators: Title of the dialog confirming disconnection when swapping Remote Access modes.
 		title=pgettext("remote", "Confirm Disconnection"),
@@ -191,7 +187,6 @@ def show_swap_confirmation_dialog() -> bool:
 		dialogType=DialogType.WARNING,
 		buttons=confirmationButtons,
 	)
-	return dialog.ShowModal() == ReturnCode.YES
 
 
 def show_switch_to_default_dialog(service: RemoteService) -> bool:
