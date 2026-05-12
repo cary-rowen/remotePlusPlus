@@ -98,6 +98,11 @@ class MenuHandler:
 		if not self._orig_handleConnected:
 			self._orig_handleConnected = menu.handleConnected
 			menu.handleConnected = self._handleMenuConnected
+
+		if self._manageItem is not None or self._swapItem is not None or self._menuSep is not None:
+			self._updateMenuState(client.isConnected())
+			return
+
 		self._menuSep = menu.AppendSeparator()
 
 		# Translators: Menu item to open Remote Connection Manager dialog.
