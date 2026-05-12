@@ -47,6 +47,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self.service = RemoteService()
 		self._manager_dialog: ConnectionManagerDialog | None = None
 		self._disconnectConfirmationDialog: MessageDialog | None = None
+		self._switchToDefaultDialog: MessageDialog | None = None
 		self.menu_handler = interface.MenuHandler(
 			self.service,
 			self._performSwap,
@@ -91,13 +92,19 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._closeManagerDialog()
 		self._orig_terminate()
 
+	def _focusDialog(self, dialog: MessageDialog) -> bool:
+		"""Raise and focus a dialog if it is still valid."""
+		try:
+			dialog.Raise()
+			dialog.SetFocus()
+		except RuntimeError:
+			return False
+		return True
+
 	def _confirmDisconnectForSwap(self) -> bool:
 		"""Ask whether to disconnect the current follower session before swapping."""
 		if self._disconnectConfirmationDialog:
-			try:
-				self._disconnectConfirmationDialog.Raise()
-				self._disconnectConfirmationDialog.SetFocus()
-			except RuntimeError:
+			if not self._focusDialog(self._disconnectConfirmationDialog):
 				self._disconnectConfirmationDialog = None
 			else:
 				return False
@@ -114,6 +121,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		finally:
 			self._disconnectConfirmationDialog = None
 		return True
+
+	def _confirmSwitchToDefault(self) -> bool:
+		"""Ask whether to switch from the active session to the default connection."""
+		if self._switchToDefaultDialog:
+			if not self._focusDialog(self._switchToDefaultDialog):
+				self._switchToDefaultDialog = None
+			else:
+				return False
+
+		dialog = interface.create_switch_to_default_dialog(self.service)
+		if dialog is None:
+			return False
+
+		self._switchToDefaultDialog = dialog
+		try:
+			return dialog.ShowModal() == ReturnCode.YES
+		except Exception:
+			log.error("Error showing switch to default connection dialog", exc_info=True)
+			return False
+		finally:
+			self._switchToDefaultDialog = None
 
 	@script(
 		# Translators: Description of the script to open the Remote Connection Manager.
@@ -138,10 +166,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				return
 			except RuntimeError:
 				self._manager_dialog = None
-
-		if MessageDialog.blockingInstancesExist():
-			MessageDialog.focusBlockingInstances()
-			return
 
 		self._manager_dialog = ConnectionManagerDialog(self.service)
 		self._manager_dialog.Show()
@@ -212,6 +236,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("Already connected to default server."))
 			return
 
-		if interface.show_switch_to_default_dialog(self.service):
+		if self._confirmSwitchToDefault():
 			self.service.disconnect(silent=True)
 			self.service.performAutoConnect()

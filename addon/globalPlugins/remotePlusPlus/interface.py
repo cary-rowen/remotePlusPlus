@@ -189,21 +189,17 @@ def create_disconnect_confirmation_dialog() -> MessageDialog:
 	)
 
 
-def show_switch_to_default_dialog(service: RemoteService) -> bool:
-	"""Show confirmation dialog to switch to default server.
+def create_switch_to_default_dialog(service: RemoteService) -> MessageDialog | None:
+	"""Create confirmation dialog to switch to default server.
 
 	:param service: The RemoteService instance to get connection info from.
-	:return: True if the user confirmed, False otherwise.
+	:return: The confirmation dialog, or None when required connection information is unavailable.
 	"""
-	if MessageDialog.blockingInstancesExist():
-		MessageDialog.focusBlockingInstances()
-		return False
-
 	conf = service.getControlServerConfig()
 	currentInfo = service.getCurrentConnectionInfo()
 
 	if not conf or not currentInfo:
-		return False
+		return None
 
 	targetMode = RemoteConnectionMode(conf["connectionMode"])
 	# Translators: Display text for a locally hosted server in connection dialogs.
@@ -232,7 +228,7 @@ def show_switch_to_default_dialog(service: RemoteService) -> bool:
 	)
 
 	confirmationButtons = (DefaultButton.YES, DefaultButton.NO)
-	dialog = MessageDialog(
+	return MessageDialog(
 		parent=gui.mainFrame,
 		# Translators: Title of the dialog for switching to default connection server.
 		title=_("Switch to Default Connection"),
@@ -240,8 +236,6 @@ def show_switch_to_default_dialog(service: RemoteService) -> bool:
 		dialogType=DialogType.STANDARD,
 		buttons=confirmationButtons,
 	)
-
-	return dialog.ShowModal() == ReturnCode.YES
 
 
 class ConnectionEditorDialog(wx.Dialog):
