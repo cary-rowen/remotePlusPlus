@@ -100,6 +100,7 @@ class MenuHandler:
 			menu.handleConnected = self._handleMenuConnected
 
 		if self._manageItem is not None or self._swapItem is not None or self._menuSep is not None:
+			self._syncConnectDefaultItem(menu)
 			self._updateMenuState(client.isConnected())
 			return
 
@@ -113,12 +114,39 @@ class MenuHandler:
 		self._swapItem = menu.Append(wx.ID_ANY, _("S&wap Control Mode"))
 		menu.Bind(wx.EVT_MENU, lambda evt: self.on_swap(), self._swapItem)
 
+		self._syncConnectDefaultItem(menu)
+		self._updateMenuState(client.isConnected())
+
+	@alwaysCallAfter
+	def refresh(self) -> None:
+		"""Refresh injected menu items to match current configuration and connection state."""
+		if not self.service.isRunning():
+			return
+
+		client = self.service.getClient()
+		if not client or not getattr(client, "menu", None):
+			return
+
+		if self._manageItem is None and self._swapItem is None and self._menuSep is None:
+			return
+
+		self._syncConnectDefaultItem(client.menu)
+		self._updateMenuState(client.isConnected())
+
+	def _syncConnectDefaultItem(self, menu: wx.Menu) -> None:
+		"""Add or remove the default-server menu item based on current configuration."""
 		if self.service.isAutoConnectConfigured():
+			if self._connectDefaultItem is not None:
+				return
 			# Translators: Menu item to connect to the default configured server.
 			self._connectDefaultItem = menu.Append(wx.ID_ANY, _("Connect &to Default Server"))
 			menu.Bind(wx.EVT_MENU, lambda evt: self.on_connect_default(), self._connectDefaultItem)
-
-		self._updateMenuState(client.isConnected())
+		elif self._connectDefaultItem is not None:
+			try:
+				menu.Remove(self._connectDefaultItem.Id)
+			except RuntimeError:
+				pass
+			self._connectDefaultItem = None
 
 	@alwaysCallAfter
 	def remove(self) -> None:
@@ -548,10 +576,13 @@ class GroupManagerDialog(wx.Dialog):
 class ConnectionManagerDialog(wx.Dialog):
 	"""Main dialog for Remote Connection Manager."""
 
-	def __init__(self, service: RemoteService) -> None:
+	def __init__(
+		self, service: RemoteService, on_auto_connect_changed: Callable[[], None] | None = None
+	) -> None:
 		super().__init__(gui.mainFrame, title=_("Remote Connection Manager"), size=(700, 450))
 		self.service = service
 		self.manager = service.connection_manager
+		self.on_auto_connect_changed = on_auto_connect_changed
 		self._current_connections_view: list[dict[str, Any]] = []
 		self._init_gui()
 		self.Center()
@@ -950,6 +981,8 @@ class ConnectionManagerDialog(wx.Dialog):
 			self.service.setAsAutoConnect(conn)
 			# Translators: Message announced when the connection is set as auto-connect.
 			ui.message(_("Auto-connect configuration saved"))
+			if self.on_auto_connect_changed:
+				self.on_auto_connect_changed()
 
 	def on_context_menu(self, evt: wx.CommandEvent | wx.ListEvent) -> None:
 		count = self._getSelectedCount()

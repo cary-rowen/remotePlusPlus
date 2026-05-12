@@ -167,7 +167,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			except RuntimeError:
 				self._manager_dialog = None
 
-		self._manager_dialog = ConnectionManagerDialog(self.service)
+		self._manager_dialog = ConnectionManagerDialog(self.service, self.menu_handler.refresh)
 		self._manager_dialog.Show()
 		self._manager_dialog.Raise()
 		self._manager_dialog.SetFocus()
