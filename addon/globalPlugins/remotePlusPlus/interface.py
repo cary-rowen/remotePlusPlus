@@ -577,7 +577,9 @@ class ConnectionManagerDialog(wx.Dialog):
 	"""Main dialog for Remote Connection Manager."""
 
 	def __init__(
-		self, service: RemoteService, on_auto_connect_changed: Callable[[], None] | None = None
+		self,
+		service: RemoteService,
+		on_auto_connect_changed: Callable[[], None] | None = None,
 	) -> None:
 		super().__init__(gui.mainFrame, title=_("Remote Connection Manager"), size=(700, 450))
 		self.service = service

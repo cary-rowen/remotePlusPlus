@@ -353,7 +353,7 @@ class RemoteService:
 		return bool(
 			conf.get("autoconnect", False)
 			and conf.get("key")
-			and (conf.get("host") or conf.get("selfHosted"))
+			and (conf.get("host") or conf.get("selfHosted")),
 		)
 
 	def isCurrentConnectionDefault(self) -> bool:
