@@ -194,7 +194,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(pgettext("remote", "Not connected"))
 			return
 
-		targetInfo, _ = self.service.getSwapTargetInfo()
+		targetInfo = self.service.getSwapTargetInfo()
 
 		currentInfo = self.service.getCurrentConnectionInfo()
 		if currentInfo and currentInfo.mode == _remoteClient.connectionInfo.ConnectionMode.FOLLOWER:

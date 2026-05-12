@@ -350,7 +350,7 @@ class RemoteService:
 		if not conf:
 			return False
 
-		return (
+		return bool(
 			conf.get("autoconnect", False)
 			and conf.get("key")
 			and (conf.get("host") or conf.get("selfHosted"))
@@ -393,7 +393,7 @@ class RemoteService:
 		:param info: The ConnectionInfo to check.
 		:return: True if it's a local (insecure localhost) connection.
 		"""
-		return info.insecure and info.hostname == "localhost"
+		return info.insecure and info.hostname.casefold() in {"localhost", "127.0.0.1", "::1"}
 
 	def disconnect(self, silent: bool = False) -> None:
 		"""Disconnect the current session.
@@ -451,15 +451,14 @@ class RemoteService:
 		info = ConnectionInfo(mode=mode, hostname=hostname, port=port, key=key, insecure=insecure)
 		self.connect(info)
 
-	def getSwapTargetInfo(self) -> tuple[ConnectionInfo | None, ConnectionMode | None]:
+	def getSwapTargetInfo(self) -> ConnectionInfo | None:
 		"""Get target info for swapping between leader and follower modes.
 
-		:return: A tuple of (target_info, target_mode) for the swap,
-			or (None, None) if no active session or swap not possible.
+		:return: Target connection info for the swap, or None if no active session or swap is not possible.
 		"""
 		client = self.getClient()
 		if not client:
-			return None, None
+			return None
 
 		currentInfo = None
 		newMode = None
@@ -479,9 +478,9 @@ class RemoteService:
 				mode=newMode,
 				insecure=currentInfo.insecure,
 			)
-			return targetInfo, newMode
+			return targetInfo
 
-		return None, None
+		return None
 
 	def shouldConfirmDisconnectAsFollower(self) -> bool:
 		"""Check if the user has enabled confirmation for disconnecting as follower."""
