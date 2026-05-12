@@ -124,6 +124,9 @@ class ConnectionManager:
 		:param groupName: The name of the new group.
 		:return: True if successful, False if the group already exists.
 		"""
+		groupName = groupName.strip()
+		if not groupName:
+			return False
 		if groupName in self.data["groups"]:
 			return False
 		self.data["groups"][groupName] = []
@@ -137,6 +140,9 @@ class ConnectionManager:
 		:param newName: The new name for the group.
 		:return: True if successful, False if the group cannot be renamed.
 		"""
+		newName = newName.strip()
+		if not newName:
+			return False
 		if oldName == self.DEFAULT_GROUP:
 			return False
 		if oldName not in self.data["groups"] or newName in self.data["groups"]:
@@ -274,6 +280,27 @@ class ConnectionManager:
 			return False
 
 		connections[idx], connections[newIdx] = connections[newIdx], connections[idx]
+		self.saveConfig()
+		return True
+
+	def swapConnections(self, groupName: str, firstConnId: str, secondConnId: str) -> bool:
+		"""Swap two connections within a group.
+
+		:param groupName: The name of the group containing the connections.
+		:param firstConnId: The ID of the first connection.
+		:param secondConnId: The ID of the second connection.
+		:return: True if successful, False if either connection is not found.
+		"""
+		if groupName not in self.data["groups"] or firstConnId == secondConnId:
+			return False
+
+		connections = self.data["groups"][groupName]
+		firstIdx = next((i for i, c in enumerate(connections) if c["id"] == firstConnId), -1)
+		secondIdx = next((i for i, c in enumerate(connections) if c["id"] == secondConnId), -1)
+		if firstIdx == -1 or secondIdx == -1:
+			return False
+
+		connections[firstIdx], connections[secondIdx] = connections[secondIdx], connections[firstIdx]
 		self.saveConfig()
 		return True
 

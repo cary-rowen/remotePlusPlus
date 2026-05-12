@@ -467,17 +467,19 @@ class GroupManagerDialog(wx.Dialog):
 
 	def on_add(self, evt: wx.CommandEvent) -> None:
 		# Translators: Prompt for entering a new group name.
-		name = wx.GetTextFromUser(_("Enter new group name:"), _("New Group"), parent=self)
-		if name:
-			if self.manager.createGroup(name):
-				self.refresh_list()
-				idx = self.list.FindString(name)
-				if idx != wx.NOT_FOUND:
-					self.list.SetSelection(idx)
-					self.on_selection_change(None)
-			else:
-				# Translators: Error when a group with the same name already exists.
-				_showError(self, _("Group already exists or invalid."))
+		name = wx.GetTextFromUser(_("Enter new group name:"), _("New Group"), parent=self).strip()
+		if not name:
+			return
+
+		if self.manager.createGroup(name):
+			self.refresh_list()
+			idx = self.list.FindString(name)
+			if idx != wx.NOT_FOUND:
+				self.list.SetSelection(idx)
+				self.on_selection_change(None)
+		else:
+			# Translators: Error when a group with the same name already exists.
+			_showError(self, _("Group already exists or invalid."))
 
 	def on_rename(self, evt: wx.CommandEvent) -> None:
 		selections = self.list.GetSelections()
@@ -493,13 +495,16 @@ class GroupManagerDialog(wx.Dialog):
 			_("Rename Group"),
 			default_value=old_name,
 			parent=self,
-		)
-		if new_name and new_name != old_name:
-			if self.manager.renameGroup(old_name, new_name):
-				self.refresh_list()
-			else:
-				# Translators: Error when trying to rename to an existing group name.
-				_showError(self, _("Group name already exists."))
+		).strip()
+		if not new_name:
+			return
+		if new_name == old_name:
+			return
+		if self.manager.renameGroup(old_name, new_name):
+			self.refresh_list()
+		else:
+			# Translators: Error when trying to rename to an existing group name.
+			_showError(self, _("Group name already exists."))
 
 	def on_delete(self, evt: wx.CommandEvent) -> None:
 		selections = self.list.GetSelections()
@@ -1048,5 +1053,16 @@ class ConnectionManagerDialog(wx.Dialog):
 
 		conn_id = conn["id"]
 		group = self.groupCombo.GetStringSelection()
-		if self.manager.moveConnection(group, conn_id, direction):
+		if not self.searchCtrl.GetValue():
+			if self.manager.moveConnection(group, conn_id, direction):
+				self.refresh_list(selected_id=conn_id)
+			return
+
+		currentIdx = next((i for i, c in enumerate(self._current_connections_view) if c["id"] == conn_id), -1)
+		targetIdx = currentIdx + direction
+		if not (0 <= currentIdx and 0 <= targetIdx < len(self._current_connections_view)):
+			return
+
+		targetConnId = self._current_connections_view[targetIdx]["id"]
+		if self.manager.swapConnections(group, conn_id, targetConnId):
 			self.refresh_list(selected_id=conn_id)
