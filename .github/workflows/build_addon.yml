@@ -17,9 +17,11 @@ jobs:
     # Do not modify this repo name with your own one! (should remain the template)
     if: github.repository != 'nvaccess/addonTemplate'
 
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
+    - name: Keep checkout line endings for code checks
+      run: git config --global core.autocrlf false
     - name: Checkout repo
       uses: actions/checkout@v7
     - name: Install uv
@@ -28,15 +30,38 @@ jobs:
         enable-cache: true
     - name: Install dependencies
       run: |
-        sudo apt-get update  -y
-        sudo apt-get install -y gettext
+        choco install gettext --no-progress -y
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        "C:\Program Files\gettext-iconv\bin" >> $env:GITHUB_PATH
         uv sync
 
     - name: Code checks
-      run: export SKIP=no-commit-to-branch,pyright; uv run pre-commit run --all-files
+      env:
+        SKIP: no-commit-to-branch,pyright
+      run: uv run python -m pre_commit run --all-files
 
     - name: building addon
-      run: uv run scons && uv run scons pot
+      run: uv run python -m SCons
+
+    - name: Build translation template
+      run: uv run python -m SCons pot
+
+    - name: Test audio lifecycle and protocol
+      run: uv run python -m unittest discover -s tests
+
+    - name: Verify source-only audio package
+      shell: python
+      run: |
+        from pathlib import Path
+        from zipfile import ZipFile
+
+        packages = list(Path(".").glob("*.nvda-addon"))
+        assert packages, "No add-on package was built"
+        for package in packages:
+            with ZipFile(package) as archive:
+                assert not any(name.lower().endswith((".exe", ".dll", ".pyd")) for name in archive.namelist())
+                for source in Path("addon/globalPlugins/remotePlusPlus").glob("audio*.py"):
+                    assert archive.read("globalPlugins/remotePlusPlus/" + source.name) == source.read_bytes()
 
     - uses: actions/upload-artifact@v7
       with:

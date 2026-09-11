@@ -28,10 +28,16 @@ addon_info = AddonInfo(
 	# Translators: what's new content for the add-on version to be shown in the add-on store
 	addon_changelog=_("""## 0.5.0
 
+- Require NVDA 2026.1 or later.
 - Prevent duplicate Remote++ items in the Remote Access menu.
 - Show "Connect to Default Server" as soon as an auto-connect connection is set.
 - Improve group handling and reordering in filtered connection lists.
-- Improve dialog focus handling and local server detection."""),
+- Improve dialog focus handling and local server detection.
+- Add optional low-latency audio relay through NVDARemoteAudioServer.
+- Add playback buffer and transmission quality options in NVDA Settings, with defaults clearly marked.
+- Add separate menu toggles for remote system sounds and microphone input. The
+  current Remote host is reused with the fixed audio port 6838; no audio
+  shortcut or per-connection audio settings are added."""),
 	# Author(s)
 	addon_author="Cary-rowen <manchen_0528@outlook.com>",
 	# URL for the add-on documentation support
@@ -41,7 +47,7 @@ addon_info = AddonInfo(
 	# Documentation file name
 	addon_docFileName="readme.html",
 	# Minimum NVDA version supported (e.g. "2019.3.0", minor version is optional)
-	addon_minimumNVDAVersion="2025.1.0",
+	addon_minimumNVDAVersion="2026.1.0",
 	# Last NVDA version supported/tested (e.g. "2024.4.0", ideally more recent than minimum version)
 	addon_lastTestedNVDAVersion="2026.1.0",
 	# Add-on update channel (default is None, denoting stable releases,
@@ -71,7 +77,7 @@ i18nSources: list[str] = pythonSources + ["buildVars.py"]
 # Paths are relative to the addon directory, not to the root directory of your addon sources.
 # You can either list every file (using ""/") as a path separator,
 # or use glob expressions.
-excludedFiles: list[str] = []
+excludedFiles: list[str] = ["**/__pycache__/**", "**/*.pyc"]
 
 # Base language for the NVDA add-on
 # If your add-on is written in a language other than english, modify this variable.

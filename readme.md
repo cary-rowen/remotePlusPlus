@@ -21,6 +21,56 @@ Instantly switch between controlling another computer and being controlled, with
 
 Quickly connect to your configured auto-connect server with a gesture.
 
+### Low-latency Audio Relay
+
+Listen to audio from the controlled computer through
+`NVDARemoteAudioServer`. The audio server uses the current Remote Access host
+automatically and always connects on port `6838`; the existing Remote Access
+key is reused. Audio is off whenever a Remote Access connection is created.
+
+### Audio Settings
+
+In **NVDA Settings → Remote++**, the controlling computer can choose:
+
+* **Playback buffer**: Minimum buffering (default), 10, 20, 40, or 80 ms.
+  More buffering can reduce interruptions from uneven packet arrivals, at the
+  cost of delayed playback. This is not the total end-to-end latency.
+* **Transmission quality**: 48 kHz stereo (default), 48 kHz mono, 24 kHz mono,
+  or 16 kHz mono. Mono and lower sample rates use less bandwidth; lower rates
+  also lose high-frequency detail. They do not automatically reduce latency.
+
+These preferences are global across connections, including connections opened
+from a link. They are saved alongside the connection manager's preferences and
+are independent of NVDA configuration profiles. The controlled computer's own
+preferences do not override the controller's request.
+
+Apply or OK saves changes and briefly restarts active listening, keeping the
+selected system/microphone sources. Changing a choice alone or cancelling does
+not apply it; Cancel after Apply does not undo an already applied change.
+Audio stays off when it was off. Changes made during a pending audio request
+are applied after that request succeeds; failures do not trigger automatic retries.
+Remote Access itself stays connected. Invalid saved values fall back to defaults.
+
+An older audio-capable Remote++ uses 48 kHz stereo with an announcement if the
+selected quality is unavailable; the saved preference is preserved. Audio settings
+do not add support to peers without audio relay. One controller owns audio at a
+time: other controllers must wait until it is turned off or its owner disconnects.
+Audio requires a single controlled computer in the Remote channel. If a second
+controlled computer joins, both audio sources stop automatically.
+
+System audio captures the Windows default output. Remote++ suppresses the audio
+publisher's Remote speech replay only while receiving audio and after confirming
+NVDA uses this output with an audible speech synthesizer. Selecting No speech,
+setting speech volume to zero, selecting another output device, or a peer that
+cannot confirm this preserves Remote speech. Volume changes apply to each utterance.
+Other controlled computers' speech and tones always retain their normal replay.
+If no valid audio arrives for about half a second, Remote speech resumes while
+the listener waits for audio to return; normal silent periods do not close audio
+or repeatedly announce errors. Closing audio, a capture failure or reloading the
+controlled computer's add-ons also restores Remote speech automatically.
+Remote Access mute, including automatic mute on local control, also mutes the
+audio listener. Unmuting resumes live audio without replaying the muted backlog.
+
 ## Connection Manager
 
 The Connection Manager provides a convenient interface for managing your remote connections.
@@ -62,11 +112,37 @@ All features are also accessible from the NVDA Remote menu:
 
 * Connection Manager...
 * Swap Control Mode
+* Listen to remote system sounds
+* Listen to remote microphone
 * Connect to Default Server (only shown when auto-connect is configured)
 
 ## Requirements
 
-* NVDA 2025.1 or later with built-in Remote Access enabled
+* NVDA 2026.1 or later with built-in Remote Access enabled
+* A running `NVDARemoteAudioServer` instance on the same host as Remote Access,
+  listening on port `6838`
+* Remote++ on both computers
+* Windows; audio runs inside NVDA using its bundled comtypes/pycaw and WavePlayer.
+  No Rust toolchain, separate Python installation or bundled executable is required.
+
+The audio relay uses PCM 16-bit with 5 ms frames, defaulting to 48 kHz stereo.
+Windows WASAPI converts capture to the negotiated sample rate and channels.
+NVDA performs playback conversion through its existing Windows audio backend. The controlled computer can publish system sounds,
+microphone input, or both; both sources are mixed into one stream. Mono capture
+is duplicated to stereo. Actual latency also depends on the device period and
+the network; a 5 ms network frame is not a guarantee of 5 ms total latency.
+Changing or disconnecting the default capture device stops audio with an error;
+select the audio menu item again to use the new device. Capture queues are bounded
+to 40 ms per source. Playback queues hold the selected buffer plus 40 ms, with at
+most 20 ms additionally fed to NVDA. Stale audio is discarded on mute or media loss.
+The audio protocol has no encryption; use a trusted network or VPN.
+
+The two menu items are available only on the controlling computer. Enabling an
+item sends a request to the controlled computer, so audio is not started until
+one of the items is selected. If the other side is an older Remote client,
+or does not have Remote++, the request times
+out or reports that audio is unavailable while the Remote Access connection
+continues normally. No audio shortcut is assigned by default.
 
 ## Security
 

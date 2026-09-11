@@ -66,7 +66,7 @@ Tutte le funzionalità sono inoltre accessibili dal menu accesso remoto di NVDA:
 
 ## Rewuisiti
 
-* NVDA 2025.1 o versione successiva con la funzionalità accesso remoto integrato abilitata
+* NVDA 2026.1 o versione successiva con la funzionalità accesso remoto integrato abilitata
 
 ## Sicurezza
 
@@ -75,3 +75,31 @@ Per garantire la massima sicurezza e impedire accessi involontari, questo compon
 ## Autore
 
 Cary-rowen <manchen_0528@outlook.com>
+
+## Audio a bassa latenza
+
+L'audio a bassa latenza usa `NVDARemoteAudioServer` per trasmettere l'audio del
+computer controllato. Vengono usati automaticamente l'host della connessione
+Remote corrente, la porta fissa `6838` e la chiave Remote esistente. L'audio è
+disattivato quando si crea una connessione e non ha impostazioni nell'editor.
+
+Nel menu Remote Access sono disponibili due opzioni indipendenti:
+
+* Ascolta i suoni del dispositivo di uscita predefinito di Windows sul sistema remoto
+* Ascolta il microfono remoto
+
+Le opzioni sono disponibili solo sul computer che controlla. La selezione chiede
+al computer controllato di avviare l'acquisizione; le due sorgenti possono essere
+attive insieme e vengono miscelate. Il computer controllato deve avere Remote++
+e il modulo audio incluso. Con un vecchio client Remote, senza Remote++ o senza
+modulo audio, l'audio viene segnalato come non disponibile o va in timeout, mentre la
+connessione Remote resta attiva. Non viene assegnata una scorciatoia audio.
+
+In Impostazioni NVDA → Remote++ si possono scegliere il buffer di riproduzione
+(minimo, predefinito; 10, 20, 40 o 80 ms) e la qualità (48 kHz stereo, predefinita;
+48, 24 o 16 kHz mono). Le preferenze sono globali: Applica riavvia brevemente
+l'ascolto attivo mantenendo le sorgenti selezionate, senza attivare l'audio spento.
+I peer audio meno recenti usano 48 kHz stereo; la preferenza scelta viene conservata.
+
+Il modulo Python usa PCM a 16 bit e frame da 5 ms, di default a 48 kHz stereo. Il protocollo
+audio non è cifrato: usare una rete fidata o una VPN.

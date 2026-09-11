@@ -18,11 +18,13 @@ import inputCore
 from scriptHandler import script
 from gui.guiHelper import alwaysCallAfter
 from gui.message import MessageDialog, ReturnCode
+from gui.settingsDialogs import NVDASettingsDialog
 from logHandler import log
 import ui
 import _remoteClient
 
 from .service import RemoteService
+from .audio import AUDIO_SOURCE_MICROPHONE, AUDIO_SOURCE_SYSTEM, AudioStateEvent
 from . import interface
 from .interface import ConnectionManagerDialog
 
@@ -45,6 +47,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self) -> None:
 		super().__init__()
 		self.service = RemoteService()
+		interface.RemotePlusPlusSettingsPanel.service = self.service
+		NVDASettingsDialog.categoryClasses.append(interface.RemotePlusPlusSettingsPanel)
 		self._manager_dialog: ConnectionManagerDialog | None = None
 		self._disconnectConfirmationDialog: MessageDialog | None = None
 		self._switchToDefaultDialog: MessageDialog | None = None
@@ -53,7 +57,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._performSwap,
 			self._performConnectToDefault,
 			self._performShowManager,
+			self._performToggleSystemAudio,
+			self._performToggleMicrophone,
 		)
+		self.service.setAudioStateCallback(self._onAudioStateChanged)
 
 		# Monkey-patch _remoteClient to inject menu items when Remote is enabled/disabled
 		self._orig_initialize = _remoteClient.initialize
@@ -72,6 +79,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			log.error("Failed to restore _remoteClient functions", exc_info=True)
 
 		self.menu_handler.remove()
+		NVDASettingsDialog.categoryClasses.remove(interface.RemotePlusPlusSettingsPanel)
+		interface.RemotePlusPlusSettingsPanel.service = None
+		self.service.terminate()
 		self._closeManagerDialog()
 		super().terminate()
 
@@ -90,9 +100,33 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _onRemoteTerminate(self) -> None:
 		self.menu_handler.remove()
 		self._closeManagerDialog()
+		self.service.handleRemoteConnectionChanged(False)
 		self._orig_terminate()
 
-	def _focusDialog(self, dialog: MessageDialog) -> bool:
+	@alwaysCallAfter
+	def _onAudioStateChanged(self, event: AudioStateEvent) -> None:
+		if event.generation != self.service.audio.generation:
+			return
+		state, error = event.state, event.error
+		self.menu_handler.refresh()
+		if not self.service.isAudioLeader():
+			return
+		if state == "on":
+			if self.service.audio.state != "on":
+				return
+			if self.service.getAudioQualityFallback():
+				# Translators: An older controlled computer cannot negotiate the selected quality.
+				ui.message(
+					_(
+						"Audio relay enabled using 48 kHz stereo. The remote computer does not support the selected quality.",
+					),
+				)
+			else:
+				ui.message(_("Audio relay enabled"))
+		elif state == "error" and error:
+			ui.message(_("Audio relay error: {error}").format(error=error))
+
+	def _focusDialog(self, dialog: MessageDialog | ConnectionManagerDialog) -> bool:
 		"""Raise and focus a dialog if it is still valid."""
 		try:
 			dialog.Raise()
@@ -160,12 +194,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		if self._manager_dialog is not None:
-			try:
-				self._manager_dialog.Raise()
-				self._manager_dialog.SetFocus()
+			if self._focusDialog(self._manager_dialog):
 				return
-			except RuntimeError:
-				self._manager_dialog = None
+			self._manager_dialog = None
 
 		self._manager_dialog = ConnectionManagerDialog(self.service, self.menu_handler.refresh)
 		self._manager_dialog.Show()
@@ -213,6 +244,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	)
 	def script_connectToDefault(self, gesture: inputCore.InputGesture) -> None:
 		self._performConnectToDefault()
+
+	@alwaysCallAfter
+	def _performToggleSystemAudio(self) -> None:
+		self._performToggleAudioSource(AUDIO_SOURCE_SYSTEM)
+
+	@alwaysCallAfter
+	def _performToggleMicrophone(self) -> None:
+		self._performToggleAudioSource(AUDIO_SOURCE_MICROPHONE)
+
+	def _performToggleAudioSource(self, source: int) -> None:
+		if not self.service.isRunning() or not self.service.isConnected():
+			ui.message(pgettext("remote", "Not connected"))
+			return
+		if not self.service.isAudioLeader():
+			ui.message(pgettext("remote", "Not the controlling computer"))
+			return
+		if self.service.isAudioRequestPending():
+			return
+		sources = self.service.getAudioSources() ^ source
+		if not self.service.requestAudioSources(sources):
+			ui.message(_("Unable to request remote audio."))
 
 	@alwaysCallAfter
 	def _performConnectToDefault(self) -> None:

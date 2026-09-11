@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 'remotePlusPlus' '0.5.0'\n"
 "Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
-"POT-Creation-Date: 2026-05-12 08:28+0800\n"
+"POT-Creation-Date: 2026-09-10 23:04+0800\n"
 "PO-Revision-Date: 2026-07-21 09:40+0300\n"
 "Last-Translator: M. Enes Şenovalı <m-enes-senovali@example.com>\n"
 "Language-Team: Turkish\n"
@@ -17,51 +17,196 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 3.5\n"
 
+#. Translators: The audio sidecar rejected its connection or audio settings.
+#: addon\globalPlugins\remotePlusPlus\audio.py:70
+#: addon\globalPlugins\remotePlusPlus\audio.py:259
+#: addon\globalPlugins\remotePlusPlus\audio.py:266
+msgid "Audio connection settings are invalid."
+msgstr "Ses bağlantısı ayarları geçersiz."
+
+#. Translators: Connecting to or communicating with the audio server failed.
+#: addon\globalPlugins\remotePlusPlus\audio.py:73
+msgid ""
+"Unable to communicate with the audio server. Check the server and connection "
+"key."
+msgstr ""
+"Ses sunucusuyla iletişim kurulamadı. Sunucuyu ve bağlantı anahtarını kontrol "
+"edin."
+
+#. Translators: The audio server did not accept the UDP audio connection.
+#: addon\globalPlugins\remotePlusPlus\audio.py:77
+msgid ""
+"Unable to establish UDP audio transport. Check the audio server and firewall."
+msgstr ""
+"UDP ses bağlantısı kurulamadı. Ses sunucusunu ve güvenlik duvarını kontrol "
+"edin."
+
+#. Translators: No default microphone is available on the computer capturing audio.
+#: addon\globalPlugins\remotePlusPlus\audio.py:80
+msgid "No default microphone is available."
+msgstr "Kullanılabilir varsayılan mikrofon yok."
+
+#. Translators: No default output device is available for playback or system audio capture.
+#: addon\globalPlugins\remotePlusPlus\audio.py:82
+msgid "No default audio output device is available."
+msgstr "Kullanılabilir varsayılan ses çıkış aygıtı yok."
+
+#. Translators: An audio device could not be opened or stopped working.
+#: addon\globalPlugins\remotePlusPlus\audio.py:84
+msgid "The audio device is unavailable or stopped working."
+msgstr "Ses aygıtı kullanılamıyor veya çalışmayı durdurdu."
+
+#. Translators: Sending or receiving audio data failed.
+#: addon\globalPlugins\remotePlusPlus\audio.py:86
+msgid "The audio connection failed."
+msgstr "Ses bağlantısı başarısız oldu."
+
+#. Translators: The controlled computer stopped sharing audio, for example when reloading add-ons.
+#: addon\globalPlugins\remotePlusPlus\audio.py:88
+msgid "Audio sharing stopped on the controlled computer."
+msgstr "Kontrol edilen bilgisayarda ses paylaşımı durduruldu."
+
+#. Translators: Fallback for an unknown error from the audio component.
+#: addon\globalPlugins\remotePlusPlus\audio.py:91
+#: addon\globalPlugins\remotePlusPlus\service.py:656
+msgid "Audio component failed."
+msgstr "Ses bileşeni başarısız oldu."
+
+#: addon\globalPlugins\remotePlusPlus\audio.py:256
+msgid "Audio server host is unavailable."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\audio.py:263
+msgid "Audio source selection is invalid."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\audio.py:270
+msgid "No audio source is enabled."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\audio.py:279
+msgid "Native audio component is not installed."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\audio.py:309
+msgid "Unable to start the native audio component."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\audio.py:434
+msgid "Audio component stopped unexpectedly."
+msgstr ""
+
+#. Translators: The Remote++ category in NVDA settings.
+#. Add-on summary/title, usually the user visible name of the add-on
+#. Translators: Summary/title for this add-on
+#. to be shown on installation and add-on information found in add-on store
+#: addon\globalPlugins\remotePlusPlus\interface.py:48 buildVars.py:21
+msgid "Remote++"
+msgstr "Remote++"
+
+#. Translators: How much remote audio to buffer before playback.
+#: addon\globalPlugins\remotePlusPlus\interface.py:56
+msgid "Playback &buffer:"
+msgstr ""
+
+#. Translators: Default playback mode, with no deliberate prebuffering.
+#: addon\globalPlugins\remotePlusPlus\interface.py:60
+msgid "Minimum buffering (default)"
+msgstr ""
+
+#. Translators: A playback buffer duration in milliseconds.
+#: addon\globalPlugins\remotePlusPlus\interface.py:62
+#, python-brace-format
+msgid "{milliseconds} ms"
+msgstr ""
+
+#. Translators: The sample rate and channels transmitted by the remote computer.
+#: addon\globalPlugins\remotePlusPlus\interface.py:68
+msgid "Transmission &quality:"
+msgstr ""
+
+#. Translators: Default remote audio quality.
+#: addon\globalPlugins\remotePlusPlus\interface.py:72
+msgid "48 kHz stereo (default)"
+msgstr ""
+
+#. Translators: Remote audio quality with one channel.
+#: addon\globalPlugins\remotePlusPlus\interface.py:74
+msgid "48 kHz mono"
+msgstr ""
+
+#. Translators: Remote audio quality with one channel.
+#: addon\globalPlugins\remotePlusPlus\interface.py:76
+msgid "24 kHz mono"
+msgstr ""
+
+#. Translators: Remote audio quality with one channel.
+#: addon\globalPlugins\remotePlusPlus\interface.py:78
+msgid "16 kHz mono"
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\interface.py:86
+msgid ""
+"More buffering can reduce interruptions but delays playback. Lower quality "
+"uses less bandwidth. Apply changes to restart active listening; audio stays "
+"off if it is not already enabled."
+msgstr ""
+
+#. Translators: Settings could not be saved; the current audio continues unchanged.
+#: addon\globalPlugins\remotePlusPlus\interface.py:104
+msgid "Unable to save audio settings. The previous settings are still in use."
+msgstr ""
+
 #. Translators: Title of an error dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:54
+#: addon\globalPlugins\remotePlusPlus\interface.py:127
 msgid "Error"
 msgstr "Hata"
 
 #. Translators: Menu item to open Remote Connection Manager dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:110
+#: addon\globalPlugins\remotePlusPlus\interface.py:191
 msgid "Connection Ma&nager..."
 msgstr "Bağlantı &Yöneticisi..."
 
-#. Translators: Menu item to swap NVDA Remote control modes (between leader
-#. and follower).
-#: addon\globalPlugins\remotePlusPlus\interface.py:114
+#. Translators: Menu item to swap NVDA Remote control modes (between leader and follower).
+#: addon\globalPlugins\remotePlusPlus\interface.py:195
 msgid "S&wap Control Mode"
 msgstr "Kontrol Modunu &Değiştir"
 
+#: addon\globalPlugins\remotePlusPlus\interface.py:202
+msgid "Listen to remote system sounds"
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\interface.py:208
+msgid "Listen to remote microphone"
+msgstr ""
+
 #. Translators: Menu item to connect to the default configured server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:142
+#: addon\globalPlugins\remotePlusPlus\interface.py:237
 msgid "Connect &to Default Server"
 msgstr "&Varsayılan Sunucuya Bağlan"
 
-#. Translators: Title of the dialog confirming disconnection when swapping
-#. Remote Access modes.
-#: addon\globalPlugins\remotePlusPlus\interface.py:214
+#. Translators: Title of the dialog confirming disconnection when swapping Remote Access modes.
+#: addon\globalPlugins\remotePlusPlus\interface.py:327
 msgctxt "remote"
 msgid "Confirm Disconnection"
 msgstr "Bağlantıyı Kesmeyi Onayla"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:218
+#: addon\globalPlugins\remotePlusPlus\interface.py:331
 msgctxt "remote"
 msgid "Are you sure you want to disconnect from the Remote Access session?"
 msgstr ""
 "Uzaktan Erişim oturumundan bağlantıyı kesmek istediğinize emin misiniz?"
 
-#. Translators: Display text for a locally hosted server in connection
-#. dialogs.
+#. Translators: Display text for a locally hosted server in connection dialogs.
 #. Translators: Display text for a locally hosted server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:239
-#: addon\globalPlugins\remotePlusPlus\interface.py:247
-#: addon\globalPlugins\remotePlusPlus\interface.py:729
-#: addon\globalPlugins\remotePlusPlus\interface.py:949
+#: addon\globalPlugins\remotePlusPlus\interface.py:352
+#: addon\globalPlugins\remotePlusPlus\interface.py:360
+#: addon\globalPlugins\remotePlusPlus\interface.py:844
+#: addon\globalPlugins\remotePlusPlus\interface.py:1064
 msgid "Local Server"
 msgstr "Yerel Sunucu"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:253
+#: addon\globalPlugins\remotePlusPlus\interface.py:366
 #, python-brace-format
 msgid ""
 "Connect to default server: {targetHost} ({targetMode})\n"
@@ -76,229 +221,228 @@ msgstr ""
 "\n"
 "Devam etmek istiyor musunuz?"
 
-#. Translators: Title of the dialog for switching to default connection
-#. server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:267
+#. Translators: Title of the dialog for switching to default connection server.
+#: addon\globalPlugins\remotePlusPlus\interface.py:380
 msgid "Switch to Default Connection"
 msgstr "Varsayılan Bağlantıya Geç"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:290
+#: addon\globalPlugins\remotePlusPlus\interface.py:403
 msgid "&Name:"
 msgstr "&Ad:"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:297
+#: addon\globalPlugins\remotePlusPlus\interface.py:410
 msgctxt "remote"
 msgid "&Server:"
 msgstr "&Sunucu:"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:314
+#: addon\globalPlugins\remotePlusPlus\interface.py:427
 msgid "&Host:"
 msgstr "&Sunucu Adresi:"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:322
+#: addon\globalPlugins\remotePlusPlus\interface.py:435
 msgctxt "remote"
 msgid "&Key:"
 msgstr "A&nahtar:"
 
 #. Translators: Button to generate a random connection key.
-#: addon\globalPlugins\remotePlusPlus\interface.py:330
+#: addon\globalPlugins\remotePlusPlus\interface.py:443
 msgid "&Generate Key"
 msgstr "Anahtar &Oluştur"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:336
+#: addon\globalPlugins\remotePlusPlus\interface.py:449
 msgid "&Port:"
 msgstr "&Bağlantı Noktası (Port):"
 
 #. Translators: Mode choice for controlling another computer.
 #. Translators: Mode label for controlling another computer.
-#: addon\globalPlugins\remotePlusPlus\interface.py:346
-#: addon\globalPlugins\remotePlusPlus\interface.py:718
-#: addon\globalPlugins\remotePlusPlus\interface.py:942
+#: addon\globalPlugins\remotePlusPlus\interface.py:459
+#: addon\globalPlugins\remotePlusPlus\interface.py:833
+#: addon\globalPlugins\remotePlusPlus\interface.py:1057
 msgctxt "remote"
 msgid "Controlling another computer"
 msgstr "Başka bir bilgisayarı kontrol etme"
 
 #. Translators: Mode choice for allowing this computer to be controlled.
 #. Translators: Mode label for allowing this computer to be controlled.
-#: addon\globalPlugins\remotePlusPlus\interface.py:348
-#: addon\globalPlugins\remotePlusPlus\interface.py:720
-#: addon\globalPlugins\remotePlusPlus\interface.py:944
+#: addon\globalPlugins\remotePlusPlus\interface.py:461
+#: addon\globalPlugins\remotePlusPlus\interface.py:835
+#: addon\globalPlugins\remotePlusPlus\interface.py:1059
 msgctxt "remote"
 msgid "Allowing this computer to be controlled"
 msgstr "Bu bilgisayarın kontrol edilmesine izin verme"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:356
+#: addon\globalPlugins\remotePlusPlus\interface.py:469
 msgctxt "remote"
 msgid "&Mode:"
 msgstr "&Mod:"
 
 #. Translators: Error message when required fields are empty.
-#: addon\globalPlugins\remotePlusPlus\interface.py:398
+#: addon\globalPlugins\remotePlusPlus\interface.py:511
 msgid "Please fill in Name, Host and Key."
 msgstr "Lütfen Ad, Sunucu ve Anahtar alanlarını doldurun."
 
 #. Translators: Error message when name or key is empty.
-#: addon\globalPlugins\remotePlusPlus\interface.py:411
+#: addon\globalPlugins\remotePlusPlus\interface.py:524
 msgid "Please fill in Name and Key."
 msgstr "Lütfen Ad ve Anahtar alanlarını doldurun."
 
 #. Translators: Error message when port number is invalid.
-#: addon\globalPlugins\remotePlusPlus\interface.py:416
+#: addon\globalPlugins\remotePlusPlus\interface.py:529
 msgid "Port must be a number between 1 and 65535."
 msgstr "Bağlantı noktası (Port) 1 ile 65535 arasında bir sayı olmalıdır."
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:434
+#: addon\globalPlugins\remotePlusPlus\interface.py:547
 msgid "Manage Groups"
 msgstr "Grupları Yönet"
 
 #. Translators: Button to create a new group.
 #. Translators: Button to create a new connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:453
-#: addon\globalPlugins\remotePlusPlus\interface.py:649
+#: addon\globalPlugins\remotePlusPlus\interface.py:566
+#: addon\globalPlugins\remotePlusPlus\interface.py:764
 msgid "&New..."
 msgstr "&Yeni..."
 
 #. Translators: Button to rename a group.
-#: addon\globalPlugins\remotePlusPlus\interface.py:458
+#: addon\globalPlugins\remotePlusPlus\interface.py:571
 msgid "&Rename..."
 msgstr "Yeniden &Adlandır..."
 
 #. Translators: Button to delete a group.
 #. Translators: Button to delete the selected connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:464
-#: addon\globalPlugins\remotePlusPlus\interface.py:658
+#: addon\globalPlugins\remotePlusPlus\interface.py:577
+#: addon\globalPlugins\remotePlusPlus\interface.py:773
 msgid "&Delete"
 msgstr "&Sil"
 
 #. Translators: Button to close the dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:472
-#: addon\globalPlugins\remotePlusPlus\interface.py:663
+#: addon\globalPlugins\remotePlusPlus\interface.py:585
+#: addon\globalPlugins\remotePlusPlus\interface.py:778
 msgid "&Close"
 msgstr "&Kapat"
 
 #. Translators: Prompt for entering a new group name.
-#: addon\globalPlugins\remotePlusPlus\interface.py:503
+#: addon\globalPlugins\remotePlusPlus\interface.py:616
 msgid "Enter new group name:"
 msgstr "Yeni grup adını girin:"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:503
+#: addon\globalPlugins\remotePlusPlus\interface.py:616
 msgid "New Group"
 msgstr "Yeni Grup"
 
 #. Translators: Error when a group with the same name already exists.
-#: addon\globalPlugins\remotePlusPlus\interface.py:515
+#: addon\globalPlugins\remotePlusPlus\interface.py:628
 msgid "Group already exists or invalid."
 msgstr "Grup zaten var veya geçersiz."
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:527
+#: addon\globalPlugins\remotePlusPlus\interface.py:640
 msgid "Enter new name:"
 msgstr "Yeni adı girin:"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:528
+#: addon\globalPlugins\remotePlusPlus\interface.py:641
 msgid "Rename Group"
 msgstr "Grubu Yeniden Adlandır"
 
 #. Translators: Error when trying to rename to an existing group name.
-#: addon\globalPlugins\remotePlusPlus\interface.py:540
+#: addon\globalPlugins\remotePlusPlus\interface.py:653
 msgid "Group name already exists."
 msgstr "Grup adı zaten var."
 
 #. Translators: Confirmation message when deleting a single group.
-#: addon\globalPlugins\remotePlusPlus\interface.py:554
+#: addon\globalPlugins\remotePlusPlus\interface.py:667
 #, python-brace-format
 msgid "Delete group '{group}'? Connections will be moved to Default."
 msgstr "'{group}' grubunu sil? Bağlantılar Varsayılan gruba taşınacak."
 
 #. Translators: Confirmation message when deleting multiple groups.
-#: addon\globalPlugins\remotePlusPlus\interface.py:559
+#: addon\globalPlugins\remotePlusPlus\interface.py:672
 #, python-brace-format
 msgid "Delete {count} selected groups? Connections will be moved to Default."
 msgstr "Seçili {count} grubu sil? Bağlantılar Varsayılan gruba taşınacak."
 
 #. Translators: Title of the confirmation dialog for deleting connections.
-#: addon\globalPlugins\remotePlusPlus\interface.py:566
-#: addon\globalPlugins\remotePlusPlus\interface.py:907
+#: addon\globalPlugins\remotePlusPlus\interface.py:679
+#: addon\globalPlugins\remotePlusPlus\interface.py:1022
 msgid "Confirm Delete"
 msgstr "Silmeyi Onayla"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:582
+#: addon\globalPlugins\remotePlusPlus\interface.py:697
 msgid "Remote Connection Manager"
 msgstr "Uzak Bağlantı Yöneticisi"
 
 #. Translators: Label for the group dropdown in the connection manager.
-#: addon\globalPlugins\remotePlusPlus\interface.py:599
+#: addon\globalPlugins\remotePlusPlus\interface.py:714
 msgid "&Group:"
 msgstr "&Grup:"
 
 #. Translators: Button to open the group management dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:606
+#: addon\globalPlugins\remotePlusPlus\interface.py:721
 msgid "&Manage Groups..."
 msgstr "Grupları &Yönet..."
 
 #. Translators: Label for the search field in the connection manager.
-#: addon\globalPlugins\remotePlusPlus\interface.py:614
+#: addon\globalPlugins\remotePlusPlus\interface.py:729
 msgid "&Search:"
 msgstr "&Ara:"
 
 #. Translators: Label for the connections list in the connection manager.
-#: addon\globalPlugins\remotePlusPlus\interface.py:621
+#: addon\globalPlugins\remotePlusPlus\interface.py:736
 msgid "&All connections:"
 msgstr "&Tüm bağlantılar:"
 
 #. Translators: Column header for connection name.
-#: addon\globalPlugins\remotePlusPlus\interface.py:626
+#: addon\globalPlugins\remotePlusPlus\interface.py:741
 msgid "Name"
 msgstr "Ad"
 
 #. Translators: Column header for connection host.
-#: addon\globalPlugins\remotePlusPlus\interface.py:628
+#: addon\globalPlugins\remotePlusPlus\interface.py:743
 msgid "Host"
 msgstr "Sunucu"
 
 #. Translators: Column header for connection mode.
-#: addon\globalPlugins\remotePlusPlus\interface.py:630
+#: addon\globalPlugins\remotePlusPlus\interface.py:745
 msgctxt "remote"
 msgid "Mode"
 msgstr "Mod"
 
 #. Translators: Checkbox to close the dialog after connecting.
-#: addon\globalPlugins\remotePlusPlus\interface.py:641
+#: addon\globalPlugins\remotePlusPlus\interface.py:756
 msgid "Close after connecting"
 msgstr "Bağlandıktan sonra kapat"
 
 #. Translators: Button to edit the selected connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:653
+#: addon\globalPlugins\remotePlusPlus\interface.py:768
 msgid "&Edit..."
 msgstr "&Düzenle..."
 
 #. Translators: Title of the dialog to create a new connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:855
+#: addon\globalPlugins\remotePlusPlus\interface.py:970
 msgid "New Connection"
 msgstr "Yeni Bağlantı"
 
 #. Translators: Title of the dialog to edit a connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:883
+#: addon\globalPlugins\remotePlusPlus\interface.py:998
 msgid "Edit Connection"
 msgstr "Bağlantıyı Düzenle"
 
 #. Translators: Confirmation message when deleting a single connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:898
+#: addon\globalPlugins\remotePlusPlus\interface.py:1013
 #, python-brace-format
 msgid "Delete connection '{name}'?"
 msgstr "'{name}' bağlantısını sil?"
 
 #. Translators: Confirmation message when deleting multiple connections.
-#: addon\globalPlugins\remotePlusPlus\interface.py:901
+#: addon\globalPlugins\remotePlusPlus\interface.py:1016
 #, python-brace-format
 msgid "Delete {count} selected connections?"
 msgstr "Seçili {count} bağlantıyı sil?"
 
 #. Translators: Message announced when connection link is copied to clipboard.
-#: addon\globalPlugins\remotePlusPlus\interface.py:926
+#: addon\globalPlugins\remotePlusPlus\interface.py:1041
 msgid "Copied link"
 msgstr "Bağlantı kopyalandı"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:958
+#: addon\globalPlugins\remotePlusPlus\interface.py:1073
 #, python-brace-format
 msgid ""
 "Replace the current auto-connect configuration with this connection?\n"
@@ -313,176 +457,250 @@ msgstr ""
 "Sunucu: {host}\n"
 "Mod: {mode}"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:966
+#: addon\globalPlugins\remotePlusPlus\interface.py:1081
 #, python-brace-format
 msgid ""
-"Set this connection as auto-connect and enable automatic connection at startup?\n"
+"Set this connection as auto-connect and enable automatic connection at "
+"startup?\n"
 "\n"
 "Name: {name}\n"
 "Host: {host}\n"
 "Mode: {mode}"
 msgstr ""
-"Bu bağlantı otomatik bağlanılacak şekilde ayarlansın ve başlangıçta otomatik bağlanma etkinleştirilsin mi?\n"
+"Bu bağlantı otomatik bağlanılacak şekilde ayarlansın ve başlangıçta otomatik "
+"bağlanma etkinleştirilsin mi?\n"
 "\n"
 "Ad: {name}\n"
 "Sunucu: {host}\n"
 "Mod: {mode}"
 
 #. Translators: Title of the dialog for setting auto-connect.
-#: addon\globalPlugins\remotePlusPlus\interface.py:976
+#: addon\globalPlugins\remotePlusPlus\interface.py:1091
 msgid "Set as Auto-Connect"
 msgstr "Otomatik Bağlan Olarak Ayarla"
 
 #. Translators: Message announced when the connection is set as auto-connect.
-#: addon\globalPlugins\remotePlusPlus\interface.py:983
+#: addon\globalPlugins\remotePlusPlus\interface.py:1098
 msgid "Auto-connect configuration saved"
 msgstr "Otomatik bağlantı yapılandırması kaydedildi"
 
 #. Translators: Context menu item to connect to the selected server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:996
+#: addon\globalPlugins\remotePlusPlus\interface.py:1111
 msgid "&Connect"
 msgstr "&Bağlan"
 
-#. Translators: Context menu item to connect with reversed mode. Shift+Enter
-#. is the shortcut.
-#: addon\globalPlugins\remotePlusPlus\interface.py:999
+#. Translators: Context menu item to connect with reversed mode. Shift+Enter is the shortcut.
+#: addon\globalPlugins\remotePlusPlus\interface.py:1114
 msgid "Connect &Reversed\tShift+Enter"
 msgstr "&Ters Bağlan\tShift+Enter"
 
 #. Translators: Context menu item to edit the selected connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1003
+#: addon\globalPlugins\remotePlusPlus\interface.py:1118
 msgid "&Edit...\tF2"
 msgstr "&Düzenle...\tF2"
 
 #. Translators: Context menu item to copy the connection link.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1006
+#: addon\globalPlugins\remotePlusPlus\interface.py:1121
 msgid "Copy &link\tCtrl+C"
 msgstr "Bağlantıyı &Kopyala\tCtrl+C"
 
-#. Translators: Context menu item to set the selected connection as auto-
-#. connect configuration.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1009
+#. Translators: Context menu item to set the selected connection as auto-connect configuration.
+#: addon\globalPlugins\remotePlusPlus\interface.py:1124
 msgid "Set as &Auto-Connect"
 msgstr "&Otomatik Bağlan Olarak Ayarla"
 
-#. Translators: Context menu item to move the selected connection up. Alt+Up
-#. is the shortcut.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1013
+#. Translators: Context menu item to move the selected connection up. Alt+Up is the shortcut.
+#: addon\globalPlugins\remotePlusPlus\interface.py:1128
 msgid "Move &Up\tAlt+Up"
 msgstr "Yukarı &Taşı\tAlt+Up"
 
-#. Translators: Context menu item to move the selected connection down.
-#. Alt+Down is the shortcut.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1016
+#. Translators: Context menu item to move the selected connection down. Alt+Down is the shortcut.
+#: addon\globalPlugins\remotePlusPlus\interface.py:1131
 msgid "Move &Down\tAlt+Down"
 msgstr "Aşağı T&aşı\tAlt+Down"
 
 #. Translators: Context menu item to delete the selected connection(s).
-#: addon\globalPlugins\remotePlusPlus\interface.py:1020
+#: addon\globalPlugins\remotePlusPlus\interface.py:1135
 msgid "&Delete\tDel"
 msgstr "&Sil\tDel"
 
-#. Translators: Description of the script to open the Remote Connection
-#. Manager.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:148
+#. Translators: The relay cannot select among multiple controlled computers.
+#: addon\globalPlugins\remotePlusPlus\service.py:717
+msgid "Remote audio requires exactly one controlled computer in the channel."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\service.py:765
+msgid "The remote audio control channel is unavailable."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\service.py:783
+msgid ""
+"The remote computer did not respond to the audio request. It may not support "
+"audio relay."
+msgstr ""
+
+#. Translators: Another controller currently owns the shared audio stream.
+#: addon\globalPlugins\remotePlusPlus\service.py:819
+msgid ""
+"Another controller is using remote audio. Try again after they turn it off."
+msgstr ""
+
+#. Translators: The peer requested an unknown audio quality.
+#: addon\globalPlugins\remotePlusPlus\service.py:822
+msgid "The requested audio quality is not supported."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\service.py:857
+#: addon\globalPlugins\remotePlusPlus\service.py:971
+msgid "Audio component unavailable."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\service.py:955
+msgid "Remote connection information is unavailable."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\service.py:980
+msgid "Remote audio is unavailable."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\__init__.py:121
+msgid ""
+"Audio relay enabled using 48 kHz stereo. The remote computer does not "
+"support the selected quality."
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\__init__.py:125
+msgid "Audio relay enabled"
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\__init__.py:127
+#, python-brace-format
+msgid "Audio relay error: {error}"
+msgstr ""
+
+#. Translators: Description of the script to open the Remote Connection Manager.
+#: addon\globalPlugins\remotePlusPlus\__init__.py:182
 msgid "Opens the Remote Connection Manager."
 msgstr "Uzak Bağlantı Yöneticisini açar."
 
-#: addon\globalPlugins\remotePlusPlus\__init__.py:149
-#: addon\globalPlugins\remotePlusPlus\__init__.py:178
+#: addon\globalPlugins\remotePlusPlus\__init__.py:183
 #: addon\globalPlugins\remotePlusPlus\__init__.py:212
+#: addon\globalPlugins\remotePlusPlus\__init__.py:246
 msgctxt "remote"
 msgid "Remote Access"
 msgstr "Uzaktan Erişim"
 
-#. Translators: Shown when action is unavailable because Remote Access is
-#. disabled.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:159
-#: addon\globalPlugins\remotePlusPlus\__init__.py:189
-#: addon\globalPlugins\remotePlusPlus\__init__.py:222
+#. Translators: Shown when action is unavailable because Remote Access is disabled.
+#: addon\globalPlugins\remotePlusPlus\__init__.py:193
+#: addon\globalPlugins\remotePlusPlus\__init__.py:223
+#: addon\globalPlugins\remotePlusPlus\__init__.py:277
 msgctxt "remote"
 msgid "Action unavailable when Remote Access is disabled"
 msgstr "Uzaktan Erişim devre dışıyken işlem kullanılamaz"
 
 #. Translators: Description of the script to swap NVDA Remote control modes.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:177
+#: addon\globalPlugins\remotePlusPlus\__init__.py:211
 msgid "Swaps the NVDA Remote control mode between Leader and Follower."
 msgstr ""
 "NVDA Remote kontrol modunu Yöneten (Leader) ve İzleyen (Follower) arasında "
 "değiştirir."
 
-#. Translators: Shown when trying to perform an action that requires a
-#. connection.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:194
+#. Translators: Shown when trying to perform an action that requires a connection.
+#: addon\globalPlugins\remotePlusPlus\__init__.py:228
+#: addon\globalPlugins\remotePlusPlus\__init__.py:261
 msgctxt "remote"
 msgid "Not connected"
 msgstr "Bağlı değil"
 
-#. Translators: Description of the script to connect to the configured auto-
-#. connect server.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:211
+#. Translators: Description of the script to connect to the configured auto-connect server.
+#: addon\globalPlugins\remotePlusPlus\__init__.py:245
 msgid "Connects to the configured auto-connect server."
 msgstr "Yapılandırılmış otomatik bağlantı sunucusuna bağlanır."
 
+#: addon\globalPlugins\remotePlusPlus\__init__.py:264
+msgctxt "remote"
+msgid "Not the controlling computer"
+msgstr ""
+
+#: addon\globalPlugins\remotePlusPlus\__init__.py:270
+msgid "Unable to request remote audio."
+msgstr ""
+
 #. Translators: Shown when auto-connect parameters are not configured.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:227
+#: addon\globalPlugins\remotePlusPlus\__init__.py:282
 msgid "Auto-connect parameters not configured."
 msgstr "Otomatik bağlantı parametreleri yapılandırılmamış."
 
 #. Translators: Shown when already connected to the default server.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:236
+#: addon\globalPlugins\remotePlusPlus\__init__.py:291
 msgid "Already connected to default server."
 msgstr "Varsayılan sunucuya zaten bağlı."
 
-#. Add-on summary/title, usually the user visible name of the add-on
-#. Translators: Summary/title for this add-on
-#. to be shown on installation and add-on information found in add-on store
-#: buildVars.py:21
-msgid "Remote++"
-msgstr "Remote++"
-
 #. Add-on description
-#. Translators: Long description to be shown for this add-on on add-on
-#. information from add-on store
+#. Translators: Long description to be shown for this add-on on add-on information from add-on store
 #: buildVars.py:24
 msgid "Enhances NVDA Remote with productivity features for power users."
 msgstr ""
-"Gelişmiş kullanıcılar için NVDA Remote eklentisini verimlilik özellikleriyle"
-" güçlendirir."
+"Gelişmiş kullanıcılar için NVDA Remote eklentisini verimlilik özellikleriyle "
+"güçlendirir."
 
 #. Brief changelog for this version
-#. Translators: what's new content for the add-on version to be shown in the
-#. add-on store
+#. Translators: what's new content for the add-on version to be shown in the add-on store
 #: buildVars.py:29
+#, fuzzy
 msgid ""
 "## 0.5.0\n"
 "\n"
+"- Require NVDA 2026.1 or later.\n"
 "- Prevent duplicate Remote++ items in the Remote Access menu.\n"
-"- Show \"Connect to Default Server\" as soon as an auto-connect connection is set.\n"
+"- Show \"Connect to Default Server\" as soon as an auto-connect connection "
+"is set.\n"
 "- Improve group handling and reordering in filtered connection lists.\n"
-"- Improve dialog focus handling and local server detection."
+"- Improve dialog focus handling and local server detection.\n"
+"- Add optional low-latency audio relay through NVDARemoteAudioServer.\n"
+"- Add playback buffer and transmission quality options in NVDA Settings, "
+"with defaults clearly marked.\n"
+"- Add separate menu toggles for remote system sounds and microphone input. "
+"The\n"
+"  current Remote host is reused with the fixed audio port 6838; no audio\n"
+"  shortcut or per-connection audio settings are added."
 msgstr ""
 "## 0.5.0\n"
 "\n"
 "- Remote Access menüsünde yinelenen Remote++ öğeleri engellendi.\n"
-"- Bir otomatik bağlantı ayarlanır ayarlanmaz \"Varsayılan Sunucuya Bağlan\" seçeneği gösterilir.\n"
-"- Filtrelenmiş bağlantı listelerinde grup yönetimi ve yeniden sıralama iyileştirildi.\n"
+"- Bir otomatik bağlantı ayarlanır ayarlanmaz \"Varsayılan Sunucuya Bağlan\" "
+"seçeneği gösterilir.\n"
+"- Filtrelenmiş bağlantı listelerinde grup yönetimi ve yeniden sıralama "
+"iyileştirildi.\n"
 "- İletişim kutusu odak yönetimi ve yerel sunucu algılaması iyileştirildi."
+
+#, fuzzy
+#~ msgid "&Audio server:"
+#~ msgstr "&Sunucu:"
+
+#~ msgid "&Capture device (blank for system audio):"
+#~ msgstr "&Yakalama aygıtı (sistem sesi için boş bırakın):"
 
 #~ msgid ""
 #~ "## 0.4.0\n"
 #~ "\n"
-#~ "* Remove the \"Connect\" button from the Connection Manager dialog (keep in context menu).\n"
-#~ "* Remove the \"Copy link\" button from the Connection Manager dialog (keep in context menu).\n"
+#~ "* Remove the \"Connect\" button from the Connection Manager dialog (keep "
+#~ "in context menu).\n"
+#~ "* Remove the \"Copy link\" button from the Connection Manager dialog "
+#~ "(keep in context menu).\n"
 #~ "* Add Ctrl+C keyboard shortcut for copy link functionality.\n"
-#~ "* Gestures and accelerator keys have been changed; see the add-on documentation for details."
+#~ "* Gestures and accelerator keys have been changed; see the add-on "
+#~ "documentation for details."
 #~ msgstr ""
 #~ "## 0.4.0\n"
 #~ "\n"
-#~ "* Bağlantı Yöneticisi penceresinden \"Bağlan\" düğmesi kaldırıldı (bağlam menüsünde tutuldu).\n"
-#~ "* Bağlantı Yöneticisi penceresinden \"Bağlantıyı Kopyala\" düğmesi kaldırıldı (bağlam menüsünde tutuldu).\n"
+#~ "* Bağlantı Yöneticisi penceresinden \"Bağlan\" düğmesi kaldırıldı (bağlam "
+#~ "menüsünde tutuldu).\n"
+#~ "* Bağlantı Yöneticisi penceresinden \"Bağlantıyı Kopyala\" düğmesi "
+#~ "kaldırıldı (bağlam menüsünde tutuldu).\n"
 #~ "* Bağlantı kopyalama işlevi için Ctrl+C klavye kısayolu eklendi.\n"
-#~ "* Kısayollar ve hızlandırıcı tuşlar değiştirildi; ayrıntılar için eklenti belgelerine bakın."
+#~ "* Kısayollar ve hızlandırıcı tuşlar değiştirildi; ayrıntılar için eklenti "
+#~ "belgelerine bakın."
 
 #~ msgid "&Edit"
 #~ msgstr "&Düzenle"
