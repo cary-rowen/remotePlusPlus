@@ -1,39 +1,94 @@
 # Python 音频实现与验证记录
 
-工作目录：`D:\git\my\remotePlusPlus-python`。原目录
-`D:\git\my\remotePlusPlus` 保留不动。版本号仍为 0.5.0；没有提交、打标签、发布或安装。
+## 当前实现：Opus
 
-## 实现
+兼容基线为 NVDA 2026.1 / Python 3.13 / x64。音频继续在 NVDA 工作线程中运行，
+使用 NVDA 自带 comtypes/pycaw 采集、WavePlayer 播放；新增随插件分发的 libopus 1.5.2 DLL。
+没有外部音频进程，但当前插件包不再是完全不含二进制的源码包。
 
-音频现在运行在 NVDA 的后台线程中，不再启动 Rust EXE，也不依赖独立 Python 解释器。
-插件包不包含 EXE、DLL 或 PYD。依赖均来自 NVDA 和 Windows，因此没有新增依赖或子模块。
+* `audio.py`：四项设置、旧偏好迁移、版本 2 控制信封和工作线程生命周期。
+* `audioCodec.py`：标准库 ctypes 调用 libopus，每个工作线程独占会话编解码状态。
+  固定 48 kHz PCM16，64/96/192 kbps CBR，单/双声道，10/20 ms 分包，
+  使用 restricted-lowdelay，关闭 DTX/FEC。
+* `audioRuntime.py`：先混音再编码、接收后解码，继续以 5 ms 块播放；保留 40 ms 采集上限、
+  所选缓冲加 40 ms 播放队列、20 ms 设备待播上限。短缺口最多补偿 40 ms，长缺口重置解码器。
+  无效包和丢包补偿不刷新有效媒体时间，500 ms 中断恢复 Remote 朗读。
+* `audioTransport.py`：复用服务端版本 1 TCP/UDP 外壳及不透明载荷；协商 UDP 容量使用编码包大小，
+  不使用解码后的 PCM 帧长度。保留会话校验、心跳、IPv4/IPv6 和序号回绕。
+* `audioCapture.py` / `audioCom.py`：继续使用既有 WASAPI 采集、系统混音转换和 COM 资源管理。
 
-* `audio.py`：保留原有设置、协商信封和代次校验，改为管理 Python 工作线程。
-* `audioCom.py`：采集和播放共用的 COM 生命周期；异常路径先清理回溯中的设备引用，
-  再反初始化，跨线程只保存格式化后的错误诊断。
-* `audioCapture.py`：复用 NVDA 自带 pycaw 的设备枚举与 IAudioClient，只补充
-  IAudioCaptureClient。系统声音使用 WASAPI loopback，麦克风使用 WASAPI capture。
-  COM 对象在采集线程内创建、使用和释放，错误也会释放已取得的缓冲区。
-* `audioRuntime.py`：双源固定增益混音、5 ms 分包、40 ms 采集队列、可选预缓冲、
-  NVDA WavePlayer 播放、静音清空和中断恢复。远程音频独立于本机提示音音量，保留前导静音。
-  单源无需逐采样处理；双源使用标准库
-  大整数的批量位运算求 PCM16 平均值，有边界值及随机样本对照测试。
-* `audioTransport.py`：有界 TCP 握手、UDP 注册重试、双方心跳、IPv4/IPv6、会话和
-  帧长度校验、64 位序号回绕、连接关闭和超时处理。
+默认 96 kbps、立体声、10 ms 分包、最小缓冲。播放缓冲只影响控制端，其他设置由控制端请求，
+经被控端确认后使用。双方必须支持版本 2，不再回退到 PCM。取消不依赖编码参数，协商失败时
+释放远端采集。格式切换使用新会话，保留代次保护和主线程回调注册。
+静音仍解码以维护状态，但不排队播放；保留前导静音，远程音频不跟随本机提示音音量。
 
-采样率及声道转换由 Windows 的共享音频引擎处理，使用 AUTOCONVERTPCM 与
-SRC_DEFAULT_QUALITY；播放转换由 NVDA 现有实现完成。没有采用先前草稿中有混叠风险的
-Python 最近邻重采样。活动音频期间请求 1 ms 多媒体计时精度，退出时配对释放。
-这仍是源码形式的插件，但不意味着 Windows/NVDA 本身没有原生实现。
+## 构建和验证命令
 
-保留原有的四种音质、五档缓冲、系统/麦克风独立开关、单控制方所有权、NVDA 语音覆盖
-判断、远程静音及旧代次事件过滤。500 ms 未收到有效 PCM 时恢复远程语音；有效的静音
-PCM 仍算媒体。默认采集设备切换或失效时停止音频并报错，重新打开菜单项使用新设备。
+需要 Visual Studio 2022 C++ 工具及 Windows SDK。构建脚本通过 uv 获取 CMake 3.31.6，
+校验固定上游源码的 SHA-256，构建 Release x64 DLL 并静态链接 C 运行库。
+许可证、来源和构建选项见 `addon/globalPlugins/remotePlusPlus/lib/`。DLL 不提交到 Git。
 
-兼容基线为 NVDA 2026.1 / Python 3.13，已核对该版本自带 comtypes 1.4.13 与
-pycaw 20251023。实际设备验证使用 Windows 10 19045、NVDA 2026.3beta1 的音频 DLL
-及本机 NVDA 开发环境。pycaw 接口导入路径、COM 的 `_iid_` 元数据及 NVDA WavePlayer
-的 feed/onDone/stop 语义是需要随 NVDA 升级检查的依赖点，分别集中在采集和播放模块。
+```powershell
+uv run python tools/build_opus.py
+uv run python -m unittest discover -s tests
+uv run python -m SCons
+uv run python -m SCons pot
+D:\git\nvda\.venv\Scripts\python.exe -m unittest discover -s tests
+D:\git\nvda\.venv\Scripts\python.exe tools/audio_device_probe.py
+D:\git\nvda\.venv\Scripts\python.exe tools/audio_probe.py --host 127.0.0.1 --port 16388 --seconds 10 --bitrate 96 --channels 2 --frame-ms 10
+```
+
+网络探针连接本机测试服务器，输出编码及含 IP/UDP/音频包头的流量、包间隔、丢包和 CPU 数据，
+不保存原始音频。它不测量远程按键到扬声器的总延迟，不能替代双机收听。
+
+## Opus 验证记录（2026-09-21）
+
+* NVDA 开发环境的 76 项测试通过，包含 12 种真实编解码组合、设置面板、取消竞态、
+  无效协商释放采集、格式校验、丢包补偿、静音期间解码和资源释放。
+* 真实设备探针使用 Windows 10 和已安装 NVDA 2026.3beta2 的 x64 音频 DLL。
+  单/双声道及 10/20 ms 四种组合的采集、播放、静音和停止通过；本机提示音音量为零、
+  开启静音裁剪时仍验证了独立音量和保留前导静音。
+* 原版音频服务端在本机运行，系统声音和麦克风混音，96 kbps 立体声各测试 8 秒。
+  10 ms：801 包，编码流量 96.11 kbps，含协议头 148.97 kbps；
+  20 ms：400 包，编码流量 95.99 kbps，含协议头 122.38 kbps；两组均无丢包，
+  发布进程 CPU 均约为单核的 1.17%。数据不包括链路层及控制连接开销。
+* 与 CI 相同的全文件 pre-commit 检查通过，按现有 CI 配置跳过分支保护和 Pyright；
+  Ruff、编译、gettext、简体中文 msgfmt 及插件包内容检查通过。
+* Pyright 单独执行。使用同一 NVDA 环境和规则对照当前提交：基线 446 条诊断，
+  修改后 448 条；新增两条均来自新增控件调用处的 NVDA `addLabeledControl` 参数类型不完整。
+  `audioCodec.py` 没有类型诊断。Pyright 不计为通过。
+* 未进行双机实际收听、公网弱网验证或插件安装；版本号未改变。
+
+## 并发修复与完整协商模拟（2026-09-21）
+
+* 播放队列的条件变量与播放器状态共用同一把可重入锁，消除两把锁的顺序依赖。
+  当前源码中的 Opus 解码原本就在条件变量锁外，未复现审查描述的原始死锁；继续保持
+  锁外解码，并新增跨线程测试：大段丢包后的解码阻塞时，静音、取消静音和停止均可完成，
+  解码完成后不重新加入已取消的音频。
+* `tools/audio_session_probe.py` 使用 NVDA 源码的真实 RelayTransport、JSONSerializer、
+  extensionPoints，以及两端真实 RemoteService、AudioService、AudioRuntime 和 Opus DLL。
+  只替换 UI 环境、合成器状态、采集输入和播放设备；输入为合成音，输出验证非零 PCM，
+  不采集或保存用户声音。模拟在同一台电脑的两个客户端间进行，不等同于双机实际收听。
+* 经公网测试服务器的 6837 控制通道和 6838 TCP/UDP 音频通道，64/96/192 kbps、
+  单/双声道、10/20 ms 共 12 种组合完成协商、解码播放、静音恢复和远程关闭。
+  另测双源混音、150 ms 丢包后恢复、超过 500 ms 媒体中断后恢复，以及工作线程完全退出。
+  使用随机独立频道，TLS 证书校验开启。所有参数组合均通过。
+* 在用户提供的现有频道中，服务器正常转发音频控制请求；在线被控端没有返回音频响应，
+  其连接提示音路径指向 TeleNVDA。Remote++ 当前只接入 NVDA 内置远程访问，安装相同版本
+  不会使 TeleNVDA 连接接入音频控制。已补充超时提示和使用说明；现有被控端切换连接方式后
+  的实际收听尚未验证。
+* 77 项音频相关测试通过；真实设备探针在 NVDA 2026.3beta2 的四种声道/帧长组合下通过。
+
+重现完整协商模拟（需要 NVDA 开发 Python 和 NVDA 源码）：
+
+```powershell
+D:\git\nvda\.venv\Scripts\python.exe tools/audio_session_probe.py --host <测试服务器> --nvda-source D:/git/nvda/source
+```
+
+## PCM 实现历史记录
+
+以下为切换 Opus 前的验证及性能记录。其中“无 DLL”、四种 PCM 音质和 Rust 比较命令仅描述
+旧实现，不代表当前版本，也不作为 Opus 的验收结果。
 
 ## 检查
 

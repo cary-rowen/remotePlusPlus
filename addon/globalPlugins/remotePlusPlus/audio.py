@@ -24,21 +24,33 @@ addonHandler.initTranslation()
 
 
 AUDIO_PORT = 6838
-AUDIO_PROTOCOL_VERSION = 1
+AUDIO_PROTOCOL_VERSION = 2
 AUDIO_ENVELOPE_KEY = "remotePlusPlus_audio"
 AUDIO_SOURCE_SYSTEM = 1
 AUDIO_SOURCE_MICROPHONE = 2
 AUDIO_SOURCE_MASK = AUDIO_SOURCE_SYSTEM | AUDIO_SOURCE_MICROPHONE
 AUDIO_REQUEST_TIMEOUT = 8.0
 AUDIO_BUFFER_VALUES = (0, 10, 20, 40, 80)
-AUDIO_QUALITIES = ("48000_stereo", "48000_mono", "24000_mono", "16000_mono")
+AUDIO_BITRATES = (64, 96, 192)
+AUDIO_CHANNELS = (1, 2)
+AUDIO_FRAME_VALUES = (10, 20)
 
 
 class AudioSettings(NamedTuple):
-	"""Controller preferences; quality also identifies the negotiated wire format."""
+	"""Controller preferences; playback buffering is local to the listener."""
 
 	bufferMs: int = 0
-	quality: str = AUDIO_QUALITIES[0]
+	bitrateKbps: int = 96
+	channels: int = 2
+	frameMs: int = 10
+
+	def formatFields(self) -> dict[str, str | int]:
+		return {
+			"codec": "opus",
+			"bitrate_kbps": self.bitrateKbps,
+			"channels": self.channels,
+			"frame_ms": self.frameMs,
+		}
 
 
 def normalizeAudioSettings(value: Any) -> AudioSettings:
@@ -47,11 +59,29 @@ def normalizeAudioSettings(value: Any) -> AudioSettings:
 		return AudioSettings()
 	value = cast(dict[str, Any], value)
 	bufferMs = value.get("bufferMs")
-	quality = value.get("quality")
+	bitrate = value.get("bitrateKbps")
+	legacyMono = value.get("quality") in ("48000_mono", "24000_mono", "16000_mono")
+	channels = value.get("channels", 1 if legacyMono else 2)
+	frameMs = value.get("frameMs")
 	return AudioSettings(
 		bufferMs if type(bufferMs) is int and bufferMs in AUDIO_BUFFER_VALUES else 0,
-		quality if isinstance(quality, str) and quality in AUDIO_QUALITIES else AUDIO_QUALITIES[0],
+		bitrate if type(bitrate) is int and bitrate in AUDIO_BITRATES else 96,
+		channels if type(channels) is int and channels in AUDIO_CHANNELS else 2,
+		frameMs if type(frameMs) is int and frameMs in AUDIO_FRAME_VALUES else 10,
 	)
+
+
+def audioSettingsFromEnvelope(value: dict[str, Any]) -> AudioSettings | None:
+	if value.get("codec") != "opus":
+		return None
+	for name, choices in (
+		("bitrate_kbps", AUDIO_BITRATES),
+		("channels", AUDIO_CHANNELS),
+		("frame_ms", AUDIO_FRAME_VALUES),
+	):
+		if type(value.get(name)) is not int or value[name] not in choices:
+			return None
+	return AudioSettings(0, value["bitrate_kbps"], value["channels"], value["frame_ms"])
 
 
 AudioState = Literal["off", "starting", "on", "error"]
@@ -85,6 +115,10 @@ def nativeAudioErrorMessage(code: Any) -> str:
 		"audio_device_failed": _("The audio device is unavailable or stopped working."),
 		# Translators: Sending or receiving audio data failed.
 		"audio_transport_failed": _("The audio connection failed."),
+		# Translators: The bundled Opus library could not be loaded or used.
+		"audio_codec_failed": _(
+			"The Opus audio codec is unavailable or failed. Reinstall Remote++ on both computers.",
+		),
 		# Translators: The controlled computer stopped sharing audio, for example when reloading add-ons.
 		"publisher_stopped": _("Audio sharing stopped on the controlled computer."),
 	}
@@ -126,10 +160,12 @@ def parse_audio_envelope(value: Any) -> dict[str, Any] | None:
 	if not isinstance(value, dict):
 		return None
 	value = cast(dict[str, Any], value)
-	if type(value.get("version")) is not int or value["version"] != AUDIO_PROTOCOL_VERSION:
+	if type(value.get("version")) is not int or value["version"] not in (1, AUDIO_PROTOCOL_VERSION):
 		return None
 	kind = value.get("kind")
 	if kind not in ("hello", "request", "response"):
+		return None
+	if value["version"] == 1 and kind != "request":
 		return None
 	request_id = value.get("request_id")
 	if request_id is not None and (not isinstance(request_id, str) or not request_id or len(request_id) > 80):
@@ -143,8 +179,6 @@ def parse_audio_envelope(value: Any) -> dict[str, Any] | None:
 	if kind == "response" and value.get("status") not in ("ok", "error"):
 		return None
 	if "message" in value and value["message"] is not None and not isinstance(value["message"], str):
-		return None
-	if "quality" in value and (not isinstance(value["quality"], str) or len(value["quality"]) > 40):
 		return None
 	if value.get("error_code") is not None and (
 		not isinstance(value["error_code"], str) or len(value["error_code"]) > 80

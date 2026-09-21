@@ -65,8 +65,8 @@ def audioPacket(session: bytes, sequence: int, payload: bytes) -> bytes:
 	return HEADER.pack(b"RAS1", 1, 4, session, sequence, time.time_ns() // 1_000_000) + payload
 
 
-def parseAudio(packet: bytes, session: bytes, frameBytes: int) -> tuple[int, bytes] | None:
-	if len(packet) != HEADER.size + frameBytes:
+def parseAudio(packet: bytes, session: bytes, maxPayloadBytes: int = 1200) -> tuple[int, bytes] | None:
+	if not HEADER.size < len(packet) <= HEADER.size + min(maxPayloadBytes, 1200):
 		return None
 	magic, version, kind, identity, sequence, _ = HEADER.unpack_from(packet)
 	if (magic, version, kind, identity) != (b"RAS1", 1, 4, session):
@@ -83,8 +83,9 @@ class Session:
 		self.nextTcp = self.nextUdp = 0.0
 		self.tcpInterval = self.udpInterval = 5.0
 		self.controlBuffer = bytearray()
+		self.payloadMaxBytes = 1200
 
-	def open(self, host: str, port: int, key: str, role: str, frameBytes: int) -> None:
+	def open(self, host: str, port: int, key: str, role: str, requiredPayloadBytes: int) -> None:
 		try:
 			deadline = time.monotonic() + 5
 			addresses = resolve(host, port, self.stop, deadline)
@@ -135,7 +136,12 @@ class Session:
 			if len(self.identity) != 16:
 				raise ValueError("Invalid session ID")
 			udpPort = self._number(response, "udp_port", 1, 65535)
-			_ = self._number(response, "udp_audio_payload_max_bytes", frameBytes, 1200)
+			self.payloadMaxBytes = self._number(
+				response,
+				"udp_audio_payload_max_bytes",
+				requiredPayloadBytes,
+				1200,
+			)
 			self.tcpInterval = max(
 				1,
 				self._number(response, "tcp_heartbeat_interval_ms", 1, 60000, 5000) / 1000,
@@ -213,6 +219,8 @@ class Session:
 
 	def send(self, sequence: int, payload: bytes) -> None:
 		assert self.udp is not None
+		if len(payload) > self.payloadMaxBytes:
+			raise AudioError("audio_transport_failed", "Audio payload exceeds server limit")
 		try:
 			_ = self.udp.send(audioPacket(self.identity, sequence, payload))
 		except OSError as error:

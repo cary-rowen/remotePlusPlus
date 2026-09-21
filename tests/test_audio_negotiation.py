@@ -90,6 +90,10 @@ serviceModule = loadService()
 AudioSettings = audioModule.AudioSettings
 
 
+def makeEnvelope(kind, **fields):
+	return audioModule.make_audio_envelope(kind, **(AudioSettings().formatFields() | fields))
+
+
 class FakeAudio:
 	def __init__(self, callback):
 		self.callback = callback
@@ -190,7 +194,7 @@ class AudioNegotiationTests(unittest.TestCase):
 		return next(iter(self.service._pendingAudioRequests))
 
 	def respond(self, requestId, sources=1, **fields):
-		envelope = audioModule.make_audio_envelope(
+		envelope = makeEnvelope(
 			"response",
 			request_id=requestId,
 			sources=sources,
@@ -201,7 +205,7 @@ class AudioNegotiationTests(unittest.TestCase):
 
 	def testPreferencesPersistWithoutStartingAudioAndRollbackOnSaveFailure(self):
 		manager = self.service.connection_manager
-		settings = AudioSettings(80, "16000_mono")
+		settings = AudioSettings(80, 64, 1, 20)
 		self.assertTrue(manager.setAudioSettings(settings))
 		self.service.applyAudioSettings()
 		self.flush()
@@ -215,27 +219,30 @@ class AudioNegotiationTests(unittest.TestCase):
 				self.assertFalse(manager.setAudioSettings(AudioSettings()))
 		self.assertEqual(manager.getAudioSettings(), settings)
 
-	def testOldFollowerFallsBackWithoutOverwritingPreference(self):
-		settings = AudioSettings(20, "16000_mono")
+	def testMissingNegotiatedFormatCancelsWithoutOverwritingPreference(self):
+		settings = AudioSettings(20, 64, 1, 20)
 		self.service.connection_manager.setAudioSettings(settings)
 		requestId = self.request()
-		self.respond(requestId)
-		self.assertEqual(self.service.audio.settings, AudioSettings(20, "48000_stereo"))
-		self.assertTrue(self.service.getAudioQualityFallback())
+		response = makeEnvelope("response", request_id=requestId, sources=1, status="ok")
+		del response["codec"]
+		self.service._handleAudioResponse(response, 7, self.service._audioEpoch)
+		self.flush()
+		self.assertFalse(self.service.audio.starts)
+		self.assertEqual(self.sent.call_args.kwargs[audioModule.AUDIO_ENVELOPE_KEY]["sources"], 0)
 		self.assertEqual(self.service.connection_manager.getAudioSettings(), settings)
 
 	def testLatestApplyDuringNegotiationPreservesSources(self):
 		requestId = self.request(3)
-		self.service.connection_manager.setAudioSettings(AudioSettings(10, "24000_mono"))
+		self.service.connection_manager.setAudioSettings(AudioSettings(10, 96, 1))
 		self.service.applyAudioSettings()
-		self.service.connection_manager.setAudioSettings(AudioSettings(80, "16000_mono"))
+		self.service.connection_manager.setAudioSettings(AudioSettings(80, 64, 1, 20))
 		self.service.applyAudioSettings()
 		self.respond(requestId, 3)
 		self.flush()
 		latestId = next(iter(self.service._pendingAudioRequests))
 		self.assertNotEqual(latestId, requestId)
-		self.respond(latestId, 3, quality="16000_mono")
-		self.assertEqual(self.service.audio.settings, AudioSettings(80, "16000_mono"))
+		self.respond(latestId, 3, bitrate_kbps=64, channels=1, frame_ms=20)
+		self.assertEqual(self.service.audio.settings, AudioSettings(80, 64, 1, 20))
 		self.assertEqual(self.service.getAudioSources(), 3)
 		self.assertFalse(self.service.isAudioRequestPending())
 
@@ -306,7 +313,8 @@ class AudioNegotiationTests(unittest.TestCase):
 		function(*args)
 		self.assertEqual(len(self.transport.inboundHandlers["speak"].handlers), 1)
 		self.assertIsNot(
-			self.localMachine.speak, next(iter(self.transport.inboundHandlers["speak"].handlers))
+			self.localMachine.speak,
+			next(iter(self.transport.inboundHandlers["speak"].handlers)),
 		)
 
 		with patch.object(
@@ -327,11 +335,21 @@ class AudioNegotiationTests(unittest.TestCase):
 		self.assertEqual(len(self.transport.inboundHandlers["speak"].handlers), 1)
 
 	def testMismatchedResponsesNeverStartPlayback(self):
-		for fields in [{"quality": "24000_mono"}, {"sources": 2}]:
+		callback = Mock()
+		self.service.setAudioStateCallback(callback)
+		for fields in [
+			{"bitrate_kbps": 192},
+			{"sources": 2},
+			{"channels": 1},
+			{"frame_ms": 20},
+			{"codec": "pcm"},
+		]:
 			requestId = self.request()
 			self.respond(requestId, **fields)
+			self.flush()
 			self.assertFalse(self.service.audio.starts)
-			self.assertEqual(self.service.audio.events[-1][0], "error")
+			self.assertEqual(callback.call_args.args[0].state, "error")
+			self.assertEqual(self.sent.call_args.kwargs[audioModule.AUDIO_ENVELOPE_KEY]["sources"], 0)
 
 	def testTimeoutIgnoresLateResponse(self):
 		requestId = self.request()
@@ -437,7 +455,7 @@ class AudioNegotiationTests(unittest.TestCase):
 			"getSynth",
 			return_value=SimpleNamespace(name="silence"),
 		):
-			request = audioModule.make_audio_envelope("request", request_id="silent", sources=1)
+			request = makeEnvelope("request", request_id="silent", sources=1)
 			self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
 		response = self.sent.call_args.kwargs[audioModule.AUDIO_ENVELOPE_KEY]
 		self.assertIs(response["includes_nvda_speech"], False)
@@ -447,7 +465,7 @@ class AudioNegotiationTests(unittest.TestCase):
 		synth = SimpleNamespace(name="espeak", volume=0, isSupported=lambda setting: setting == "volume")
 		with patch.object(serviceModule.synthDriverHandler, "getSynth", return_value=synth):
 			self.assertFalse(self.service._publisherIncludesSpeech(1))
-			request = audioModule.make_audio_envelope("request", request_id="volume", sources=1)
+			request = makeEnvelope("request", request_id="volume", sources=1)
 			self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
 			send = self.transport.send
 			for volume in (50, 0, 75):
@@ -479,7 +497,7 @@ class AudioNegotiationTests(unittest.TestCase):
 				return volume
 
 		with patch.object(serviceModule.synthDriverHandler, "getSynth", return_value=Synth()):
-			request = audioModule.make_audio_envelope("request", request_id="mainThread", sources=1)
+			request = makeEnvelope("request", request_id="mainThread", sources=1)
 			releaseWorker = threading.Event()
 			self.service._audioWorker.submit(releaseWorker.wait, 2)
 			try:
@@ -685,7 +703,7 @@ class AudioNegotiationTests(unittest.TestCase):
 		publisher.getClient = self.service.getClient
 		publisher._registerAudioTransport(self.transport)
 		requestId = self.request()
-		request = audioModule.make_audio_envelope("request", request_id=requestId, sources=1)
+		request = makeEnvelope("request", request_id=requestId, sources=1)
 		publisher._handleAudioRequest(request, 7, publisher._audioEpoch)
 
 		def relayResponse():
@@ -736,7 +754,7 @@ class AudioNegotiationTests(unittest.TestCase):
 	def testPublisherExplicitOutputDeviceNeverClaimsSpeechCoverage(self):
 		self.info.mode = "slave"
 		serviceModule.config.conf["audio"]["outputDevice"] = "headset"
-		request = audioModule.make_audio_envelope("request", request_id="headset", sources=1)
+		request = makeEnvelope("request", request_id="headset", sources=1)
 		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
 		response = self.sent.call_args.kwargs[audioModule.AUDIO_ENVELOPE_KEY]
 		self.assertIs(response["includes_nvda_speech"], False)
@@ -757,7 +775,7 @@ class AudioNegotiationTests(unittest.TestCase):
 		requestId = self.request()
 		self.respond(requestId)
 		self.assertTrue(self.service.isAudioRequestPending(), "stale core member cannot accept a request")
-		response = audioModule.make_audio_envelope("response", request_id=requestId, sources=1, status="ok")
+		response = makeEnvelope("response", request_id=requestId, sources=1, status="ok")
 		self.service._handleAudioResponse(response, 9, self.service._audioEpoch)
 		self.assertEqual(self.service.audio.state, "on")
 		self.assertEqual(self.service.getClient.return_value.leaderSession.followers, {7, 9})
@@ -789,7 +807,7 @@ class AudioNegotiationTests(unittest.TestCase):
 		self.assertEqual(self.service._audioFollowers, {11})
 		self.assertEqual(client.leaderSession.followers, {7, 11})
 		requestId = self.request()
-		response = audioModule.make_audio_envelope("response", request_id=requestId, sources=1, status="ok")
+		response = makeEnvelope("response", request_id=requestId, sources=1, status="ok")
 		self.service._handleAudioResponse(response, 11, self.service._audioEpoch)
 		self.assertEqual(self.service.audio.state, "on")
 		self.assertEqual(len(self.transport.transportDisconnected.handlers), 1)
@@ -804,7 +822,7 @@ class AudioNegotiationTests(unittest.TestCase):
 
 	def testResponseFromAnotherControllerIsIgnored(self):
 		requestId = self.request()
-		envelope = audioModule.make_audio_envelope("response", request_id=requestId, sources=1, status="ok")
+		envelope = makeEnvelope("response", request_id=requestId, sources=1, status="ok")
 		self.service._handleAudioResponse(envelope, 8, self.service._audioEpoch)
 		self.assertTrue(self.service.isAudioRequestPending())
 		self.assertFalse(self.service.audio.starts)
@@ -824,7 +842,7 @@ class AudioNegotiationTests(unittest.TestCase):
 			return False
 
 		self.service.audio.wait_until_ready = disconnected
-		request = audioModule.make_audio_envelope("request", request_id="start", sources=1)
+		request = makeEnvelope("request", request_id="start", sources=1)
 		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
 		self.flush()
 		self.assertEqual(self.service.audio.state, "off")
@@ -836,18 +854,20 @@ class AudioNegotiationTests(unittest.TestCase):
 
 	def testPublisherHonorsControllerQualityAndProtectsOwner(self):
 		self.info.mode = "slave"
-		self.service.connection_manager.setAudioSettings(AudioSettings(80, "48000_mono"))
-		request = audioModule.make_audio_envelope(
+		self.service.connection_manager.setAudioSettings(AudioSettings(80, 96, 1))
+		request = makeEnvelope(
 			"request",
 			request_id="first",
 			sources=3,
-			quality="16000_mono",
+			bitrate_kbps=64,
+			channels=1,
+			frame_ms=20,
 		)
 		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
-		self.assertEqual(self.service.audio.settings, AudioSettings(0, "16000_mono"))
+		self.assertEqual(self.service.audio.settings, AudioSettings(0, 64, 1, 20))
 		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
 		self.assertEqual(len(self.service.audio.starts), 1, "unchanged source/quality must reuse publisher")
-		self.service._handleAudioRequest(dict(request, quality="48000_stereo"), 8, self.service._audioEpoch)
+		self.service._handleAudioRequest(dict(request, channels=2), 8, self.service._audioEpoch)
 		self.assertEqual(len(self.service.audio.starts), 1)
 		self.assertEqual(
 			self.sent.call_args.kwargs[audioModule.AUDIO_ENVELOPE_KEY]["status"],
@@ -857,13 +877,39 @@ class AudioNegotiationTests(unittest.TestCase):
 		self.flush()
 		self.assertEqual(self.service.audio.state, "off")
 
-	def testLegacyControllerGetsLegacyFormatAndUnknownQualityIsRejected(self):
+	def testLegacyControllerAndInvalidFormatsNeverStartCapture(self):
 		self.info.mode = "slave"
-		request = audioModule.make_audio_envelope("request", request_id="legacy", sources=1)
-		self.service._handleAudioRequest(dict(request, quality="unknown"), 7, self.service._audioEpoch)
-		self.assertFalse(self.service.audio.starts)
+		request = makeEnvelope("request", request_id="legacy", sources=1)
+		for fields in (
+			{"version": 1},
+			{"bitrate_kbps": 7},
+			{"bitrate_kbps": True},
+			{"channels": 3},
+			{"channels": True},
+			{"frame_ms": 5},
+			{"codec": "pcm"},
+			{"codec": None},
+		):
+			with self.subTest(fields=fields):
+				self.service._handleAudioMessage(
+					origin=7,
+					**{audioModule.AUDIO_ENVELOPE_KEY: request | fields},
+				)
+				self.flush()
+				self.assertFalse(self.service.audio.starts)
+				response = self.sent.call_args.kwargs[audioModule.AUDIO_ENVELOPE_KEY]
+				self.assertEqual(response["status"], "error")
+				self.assertEqual(response["version"], fields.get("version", 2))
+
+	def testCancellationDoesNotRequireCodecSettings(self):
+		self.info.mode = "slave"
+		request = makeEnvelope("request", request_id="active", sources=3)
 		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
-		self.assertEqual(self.service.audio.settings, AudioSettings())
+		self.assertEqual(self.service.audio.state, "on")
+		cancel = audioModule.make_audio_envelope("request", request_id="cancel", sources=0, codec=[])
+		self.service._handleAudioRequest(cancel, 7, self.service._audioEpoch)
+		self.assertEqual(self.service.audio.state, "off")
+		self.assertIsNone(self.service._publisherOwner)
 
 	def testTransportDisconnectStopsActiveAndPendingAudioAndAllowsManualRestart(self):
 		callback = Mock()
@@ -919,7 +965,7 @@ class AudioNegotiationTests(unittest.TestCase):
 		oldId = self.request()
 		self.respond(oldId)
 		requestId = self.request(3)
-		fault = audioModule.make_audio_envelope(
+		fault = makeEnvelope(
 			"response",
 			request_id=oldId,
 			sources=0,
@@ -959,7 +1005,7 @@ class AudioNegotiationTests(unittest.TestCase):
 				self.service.audio = audioModule.AudioService()
 				self.service.audio.set_state_callback(self.service._onNativeAudioState)
 				process = runtimeWithEvents(*events)
-				request = audioModule.make_audio_envelope("request", request_id="running", sources=3)
+				request = makeEnvelope("request", request_id="running", sources=3)
 
 				def ready(timeout):
 					self.service.audio._set_state("on", None, self.service.audio._generation)
@@ -1000,7 +1046,7 @@ class AudioNegotiationTests(unittest.TestCase):
 			return False
 
 		self.service.audio.start = failedStart
-		request = audioModule.make_audio_envelope("request", request_id="startup", sources=1)
+		request = makeEnvelope("request", request_id="startup", sources=1)
 		self.service._queueAudioTask(self.service._handleAudioRequest, request, 7, self.service._audioEpoch)
 		self.flush()
 		self.flush()
@@ -1017,7 +1063,7 @@ class AudioNegotiationTests(unittest.TestCase):
 			requestId = self.request()
 			if active:
 				self.respond(requestId)
-			fault = audioModule.make_audio_envelope(
+			fault = makeEnvelope(
 				"response",
 				request_id=requestId,
 				sources=0,
@@ -1036,7 +1082,7 @@ class AudioNegotiationTests(unittest.TestCase):
 
 	def testPublisherRestartAndStopDiscardQueuedOldFaults(self):
 		self.info.mode = "slave"
-		request = audioModule.make_audio_envelope("request", request_id="old", sources=1)
+		request = makeEnvelope("request", request_id="old", sources=1)
 		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
 		epoch = self.service._audioEpoch
 		event = audioModule.AudioStateEvent("error", "old failure", self.service.audio.generation)

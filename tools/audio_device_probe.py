@@ -1,7 +1,7 @@
 """Hardware probe using real NVDA WavePlayer/WASAPI with only UI/config stubs.
 
 Run with D:/git/nvda/.venv/Scripts/python.exe. This workstation probe uses the
-NVDA source checkout and installed 2026.3beta1 helper DLL. It plays quiet test
+NVDA source checkout and the most recently installed x64 helper DLL. It plays quiet test
 sines, counts captured bytes, checks mute/stop, and sends nothing to a server.
 It is not a substitute for listening on two different computers.
 """
@@ -21,7 +21,11 @@ from array import array
 def main():
 	ROOT = Path(__file__).resolve().parents[1]
 	NVDA = Path("D:/git/nvda/source")
-	DLL = Path("C:/Program Files/NVDA/lib/2026.3beta1/x64/nvdaHelperLocal.dll")
+	DLL = max(
+		Path("C:/Program Files/NVDA/lib").glob("*/x64/nvdaHelperLocal.dll"),
+		key=lambda path: path.stat().st_mtime,
+	)
+	print("NVDA helper:", DLL, flush=True)
 	dllDir = os.add_dll_directory(str(DLL.parent))
 
 	class Action:
@@ -88,17 +92,20 @@ def main():
 	from probe_audio.audioRuntime import AudioRuntime
 	from probe_audio.audioCapture import capture
 	from probe_audio.audioTransport import audioPacket
+	from probe_audio.audioCodec import OpusCodec
 
-	for quality in ("48000_stereo", "48000_mono", "24000_mono", "16000_mono"):
+	for channels, frameMs in ((1, 10), (2, 10), (1, 20), (2, 20)):
 		runtime = AudioRuntime(
 			"unused",
 			6838,
 			"test",
 			"subscriber",
 			1,
-			SimpleNamespace(quality=quality, bufferMs=0),
+			SimpleNamespace(channels=channels, bitrateKbps=96, frameMs=frameMs, bufferMs=0),
 			False,
 		)
+		runtime.codec = OpusCodec(channels, 96, frameMs, encoder=False)
+		encoder = OpusCodec(channels, 96, frameMs, encoder=True)
 		worker = threading.Thread(target=runtime._worker, args=(runtime._play,))
 		worker.start()
 		with runtime.condition:
@@ -139,21 +146,23 @@ def main():
 						int(
 							500
 							* math.sin(
-								2 * math.pi * 997 * (sequence * runtime.rate // 200 + i) / runtime.rate,
+								2 * math.pi * 997 * (sequence * encoder.samples + i) / runtime.rate,
 							),
 						)
-						for i in range(runtime.rate // 200)
+						for i in range(encoder.samples)
 						for ch in range(runtime.channels)
 					),
 				).tobytes()
-				runtime._receive(audioPacket(sid, sequence, pcm), sid, lambda e: None)
+				runtime._receive(audioPacket(sid, sequence, encoder.encode(pcm)), sid, lambda e: None)
 				sequence += 1
-				deadline += 0.005
+				deadline += frameMs / 1000
 				time.sleep(max(0, deadline - time.monotonic()))
 			if runtime.error:
 				raise runtime.error
 		start = time.monotonic()
 		runtime.stop()
+		runtime.codec.close()
+		encoder.close()
 		worker.join(2)
 		for captureWorker in runtime.workers:
 			captureWorker.join(2)
@@ -164,7 +173,7 @@ def main():
 		if runtime.error:
 			raise runtime.error
 		print(
-			quality,
+			(channels, frameMs),
 			"real NVDA WavePlayer feed/mute/stop passed",
 			"stop_ms",
 			round((time.monotonic() - start) * 1000, 2),

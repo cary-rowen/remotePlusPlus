@@ -48,13 +48,30 @@ class AudioServiceTests(unittest.TestCase):
 		)
 		self.assertEqual(
 			audioModule.normalizeAudioSettings({"bufferMs": -1, "quality": "16000_mono"}),
-			audioModule.AudioSettings(0, "16000_mono"),
+			audioModule.AudioSettings(channels=1),
 		)
+		for quality in ("48000_mono", "24000_mono", "16000_mono"):
+			self.assertEqual(
+				audioModule.normalizeAudioSettings({"bufferMs": 20, "quality": quality}),
+				audioModule.AudioSettings(20, channels=1),
+			)
+		self.assertEqual(
+			audioModule.normalizeAudioSettings(
+				{"bufferMs": 10, "bitrateKbps": 192, "channels": True, "frameMs": 20},
+			),
+			audioModule.AudioSettings(10, 192, 2, 20),
+		)
+		for field in ("bufferMs", "bitrateKbps", "channels", "frameMs"):
+			for invalid in (None, [], True, "20", -1):
+				self.assertEqual(
+					audioModule.normalizeAudioSettings({field: invalid}),
+					audioModule.AudioSettings(),
+				)
 
 	def testWorkerReceivesSettingsAndIdentity(self):
 		service = AudioService()
 		runtime = runtimeWithEvents()
-		settings = audioModule.AudioSettings(80, "16000_mono")
+		settings = audioModule.AudioSettings(80, 64, 1, 20)
 		with (
 			patch.object(audioModule, "createAudioRuntime", return_value=runtime) as start,
 			patch.object(audioModule, "Thread"),
@@ -79,7 +96,6 @@ class AudioServiceTests(unittest.TestCase):
 		for fields in [
 			{"kind": []},
 			{"version": True},
-			{"quality": []},
 			{"kind": "response", "status": {}},
 			{"includes_nvda_speech": "true"},
 			{"includes_nvda_speech": 1},

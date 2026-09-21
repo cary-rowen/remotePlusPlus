@@ -40,6 +40,9 @@ jobs:
         SKIP: no-commit-to-branch,pyright
       run: uv run python -m pre_commit run --all-files
 
+    - name: Build pinned Opus codec
+      run: uv run python tools/build_opus.py
+
     - name: building addon
       run: uv run python -m SCons
 
@@ -49,17 +52,27 @@ jobs:
     - name: Test audio lifecycle and protocol
       run: uv run python -m unittest discover -s tests
 
-    - name: Verify source-only audio package
+    - name: Verify audio package and codec architecture
       shell: python
       run: |
         from pathlib import Path
+        import struct
         from zipfile import ZipFile
 
         packages = list(Path(".").glob("*.nvda-addon"))
         assert packages, "No add-on package was built"
         for package in packages:
             with ZipFile(package) as archive:
-                assert not any(name.lower().endswith((".exe", ".dll", ".pyd")) for name in archive.namelist())
+                library = "globalPlugins/remotePlusPlus/lib/opus.dll"
+                binaries = [name for name in archive.namelist() if name.lower().endswith((".exe", ".dll", ".pyd"))]
+                assert binaries == [library], binaries
+                data = archive.read(library)
+                assert data == Path("addon", library).read_bytes()
+                pe = struct.unpack_from("<I", data, 0x3c)[0]
+                assert data[pe:pe + 4] == b"PE\0\0"
+                assert struct.unpack_from("<H", data, pe + 4)[0] == 0x8664
+                assert archive.read("globalPlugins/remotePlusPlus/lib/COPYING.opus")
+                assert archive.read("globalPlugins/remotePlusPlus/lib/README.md")
                 for source in Path("addon/globalPlugins/remotePlusPlus").glob("audio*.py"):
                     assert archive.read("globalPlugins/remotePlusPlus/" + source.name) == source.read_bytes()
 

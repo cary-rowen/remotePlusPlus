@@ -35,9 +35,18 @@ In **NVDA Settings → Remote++**, the controlling computer can choose:
 * **Playback buffer**: Minimum buffering (default), 10, 20, 40, or 80 ms.
   More buffering can reduce interruptions from uneven packet arrivals, at the
   cost of delayed playback. This is not the total end-to-end latency.
-* **Transmission quality**: 48 kHz stereo (default), 48 kHz mono, 24 kHz mono,
-  or 16 kHz mono. Mono and lower sample rates use less bandwidth; lower rates
-  also lose high-frequency detail. They do not automatically reduce latency.
+* **Audio bitrate**: 64, 96 (default), or 192 kbps. Opus compresses the entire
+  mixed audio stream at this constant bitrate, shared by both channels. Lower
+  bitrate reduces traffic at the cost of detail. These choices use approximately
+  8, 12, or 24 KB/s of audio data; packet headers add network traffic.
+* **Audio channels**: Mono or Stereo (default). Mono can improve clarity at a
+  low bitrate, but does not halve traffic at the same bitrate.
+* **Transmission mode**: Low latency, 10 ms per packet (default), or Balanced,
+  20 ms per packet. Balanced mode reduces packet overhead but adds waiting time.
+
+The sample rate is fixed at 48 kHz. Minimum buffering does not mean zero
+latency: capture, packet collection, encoding, the network and playback all add
+delay. Audio arrives in whole packets even when a smaller playback buffer is selected.
 
 These preferences are global across connections, including connections opened
 from a link. They are saved alongside the connection manager's preferences and
@@ -51,9 +60,15 @@ Audio stays off when it was off. Changes made during a pending audio request
 are applied after that request succeeds; failures do not trigger automatic retries.
 Remote Access itself stays connected. Invalid saved values fall back to defaults.
 
-An older audio-capable Remote++ uses 48 kHz stereo with an announcement if the
-selected quality is unavailable; the saved preference is preserved. Audio settings
-do not add support to peers without audio relay. One controller owns audio at a
+Both computers must use a Remote++ version supporting Opus. There is no PCM
+fallback; an older peer cannot stream audio, while normal Remote Access control
+and speech remain available. Upgrade preserves the old playback buffer and
+mono/stereo preference; bitrate and transmission mode use their new defaults.
+Both computers must connect through NVDA's built-in Remote Access. A connection
+made through TeleNVDA or the older NVDA Remote add-on does not reach Remote++'s
+audio controls, even when Remote++ is installed on both computers. If an audio
+request times out, check which Remote client is connected on the controlled computer.
+One controller owns audio at a
 time: other controllers must wait until it is turned off or its owner disconnects.
 Audio requires a single controlled computer in the Remote channel. If a second
 controlled computer joins, both audio sources stop automatically.
@@ -122,15 +137,16 @@ All features are also accessible from the NVDA Remote menu:
 * A running `NVDARemoteAudioServer` instance on the same host as Remote Access,
   listening on port `6838`
 * Remote++ on both computers
-* Windows; audio runs inside NVDA using its bundled comtypes/pycaw and WavePlayer.
-  No Rust toolchain, separate Python installation or bundled executable is required.
+* Windows; audio runs inside NVDA using its bundled comtypes/pycaw and WavePlayer,
+  plus the add-on's x64 libopus DLL. No separate runtime installation is required.
 
-The audio relay uses PCM 16-bit with 5 ms frames, defaulting to 48 kHz stereo.
+The audio relay encodes PCM16 capture as Opus, defaulting to 48 kHz stereo at
+96 kbps with 10 ms packets. Decoded audio is played in 5 ms blocks.
 Windows WASAPI converts capture to the negotiated sample rate and channels.
 NVDA performs playback conversion through its existing Windows audio backend. The controlled computer can publish system sounds,
 microphone input, or both; both sources are mixed into one stream. Mono capture
 is duplicated to stereo. Actual latency also depends on the device period and
-the network; a 5 ms network frame is not a guarantee of 5 ms total latency.
+the network; 10 ms packets do not guarantee 10 ms total latency.
 Changing or disconnecting the default capture device stops audio with an error;
 select the audio menu item again to use the new device. Capture queues are bounded
 to 40 ms per source. Playback queues hold the selected buffer plus 40 ms, with at

@@ -371,6 +371,7 @@ class CleanupTests(unittest.TestCase):
 		self.assertTrue(terminated.is_set())
 		self.assertTrue(all(event.is_set() for event in closed))
 		self.assertFalse(any(worker.is_alive() for runtime in runtimes for worker in runtime.workers))
+		self.assertTrue(all(runtime.codec is None for runtime in runtimes))
 		service.terminate()
 
 	def testTerminateDuringStartingCallbackCannotLaunchWorker(self):

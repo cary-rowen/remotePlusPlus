@@ -32,7 +32,9 @@ if TYPE_CHECKING:
 from .service import RemoteService
 from .audio import (
 	AUDIO_BUFFER_VALUES,
-	AUDIO_QUALITIES,
+	AUDIO_BITRATES,
+	AUDIO_CHANNELS,
+	AUDIO_FRAME_VALUES,
 	AUDIO_SOURCE_MICROPHONE,
 	AUDIO_SOURCE_SYSTEM,
 	AudioSettings,
@@ -63,27 +65,36 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 			],
 		)
 		self.bufferChoice.SetSelection(AUDIO_BUFFER_VALUES.index(settings.bufferMs))
-		self.qualityChoice = helper.addLabeledControl(
-			# Translators: The sample rate and channels transmitted by the remote computer.
-			_("Transmission &quality:"),
+		self.bitrateChoice = helper.addLabeledControl(
+			# Translators: Total Opus bitrate, shared by both channels and audio sources.
+			_("Audio bit&rate:"),
 			wx.Choice,
 			choices=[
-				# Translators: Default remote audio quality.
-				_("48 kHz stereo (default)"),
-				# Translators: Remote audio quality with one channel.
-				_("48 kHz mono"),
-				# Translators: Remote audio quality with one channel.
-				_("24 kHz mono"),
-				# Translators: Remote audio quality with one channel.
-				_("16 kHz mono"),
+				_("64 kbps"),
+				_("96 kbps (default)"),
+				_("192 kbps"),
 			],
 		)
-		self.qualityChoice.SetSelection(AUDIO_QUALITIES.index(settings.quality))
+		self.bitrateChoice.SetSelection(AUDIO_BITRATES.index(settings.bitrateKbps))
+		self.channelsChoice = helper.addLabeledControl(
+			_("Audio &channels:"),
+			wx.Choice,
+			choices=[_("Mono"), _("Stereo (default)")],
+		)
+		self.channelsChoice.SetSelection(AUDIO_CHANNELS.index(settings.channels))
+		self.frameChoice = helper.addLabeledControl(
+			_("&Transmission mode:"),
+			wx.Choice,
+			choices=[_("Low latency: 10 ms per packet (default)"), _("Balanced: 20 ms per packet")],
+		)
+		self.frameChoice.SetSelection(AUDIO_FRAME_VALUES.index(settings.frameMs))
 		description = wx.StaticText(
 			self,
 			# Translators: Explanation below the remote audio preferences.
 			label=_(
-				"More buffering can reduce interruptions but delays playback. Lower quality uses less bandwidth. "
+				"Audio uses Opus at 48 kHz. Lower bitrate uses less bandwidth. Balanced mode reduces packet "
+				"overhead but adds delay. More buffering can reduce interruptions but delays playback; "
+				"minimum buffering does not mean zero latency. "
 				"Apply changes to restart active listening; audio stays off if it is not already enabled.",
 			),
 		)
@@ -95,7 +106,9 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 			return
 		settings = AudioSettings(
 			AUDIO_BUFFER_VALUES[self.bufferChoice.GetSelection()],
-			AUDIO_QUALITIES[self.qualityChoice.GetSelection()],
+			AUDIO_BITRATES[self.bitrateChoice.GetSelection()],
+			AUDIO_CHANNELS[self.channelsChoice.GetSelection()],
+			AUDIO_FRAME_VALUES[self.frameChoice.GetSelection()],
 		)
 		if settings == self.service.connection_manager.getAudioSettings():
 			return

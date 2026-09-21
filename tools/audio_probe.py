@@ -1,4 +1,4 @@
-"""Compare publishers against a live relay in fresh isolated rooms.
+"""Measure an Opus publisher against a live relay in a fresh isolated room.
 
 Run with NVDA's development Python (comtypes/pycaw already installed).
 Only aggregate counts are saved; raw captured audio and room keys are not logged.
@@ -13,6 +13,7 @@ import os
 import sysconfig
 from pathlib import Path
 import queue
+import socket
 import statistics
 import subprocess
 import sys
@@ -46,7 +47,7 @@ def child(args):
 		args.key,
 		"publisher",
 		args.sources,
-		SimpleNamespace(quality=args.quality, bufferMs=0),
+		SimpleNamespace(bitrateKbps=args.bitrate, channels=args.channels, frameMs=args.frame_ms, bufferMs=0),
 		False,
 	)
 
@@ -61,27 +62,23 @@ def child(args):
 	print(json.dumps({"type": "stopped"}), flush=True)
 
 
-def measure(args, executable, quality):
+def measure(args):
 	key = uuid.uuid4().hex
-	frameBytes = int(quality.split("_")[0]) // 200 * (4 if quality.endswith("stereo") else 2)
+	codec = runtimeModule.OpusCodec(args.channels, args.bitrate, args.frame_ms, encoder=False)
 	session = transport.Session(threading.Event())
 	process = None
 	try:
-		session.open(args.host, args.port, key, "subscriber", frameBytes)
-		command = (
-			[sys._base_executable, str(Path(__file__).resolve()), "--child"]
-			if executable is None
-			else [executable]
-		)
+		session.open(args.host, args.port, key, "subscriber", codec.payloadBytes)
+		command = [sys._base_executable, str(Path(__file__).resolve()), "--child"]
 		command += [
 			f"--host={args.host}",
 			f"--port={args.port}",
 			f"--key={key}",
 			f"--sources={args.sources}",
-			f"--quality={quality}",
+			f"--bitrate={args.bitrate}",
+			f"--channels={args.channels}",
+			f"--frame-ms={args.frame_ms}",
 		]
-		if executable:
-			command.append("--role=publisher")
 		process = subprocess.Popen(
 			command,
 			stdin=subprocess.PIPE,
@@ -113,11 +110,15 @@ def measure(args, executable, quality):
 		started = time.monotonic()
 		cpuStart = processCpu(process)
 		arrivals, sequences, nonzero = [], [], 0
+		payloadBytes = networkBytes = 0
 		while time.monotonic() - started < args.seconds:
 			packet = session.poll(0.05)
-			parsed = transport.parseAudio(packet, session.identity, frameBytes) if packet else None
+			parsed = transport.parseAudio(packet, session.identity, codec.payloadBytes) if packet else None
 			if parsed:
-				sequence, pcm = parsed
+				sequence, payload = parsed
+				pcm = codec.decode(payload)
+				payloadBytes += len(payload)
+				networkBytes += len(packet) + (28 if session.udp.family == socket.AF_INET else 48)
 				arrivals.append(time.monotonic())
 				sequences.append(sequence)
 				nonzero += bool(pcm.strip(b"\0"))
@@ -126,8 +127,11 @@ def measure(args, executable, quality):
 		gaps = [(b - a) * 1000 for a, b in zip(arrivals, arrivals[1:])]
 		missing = sum(max(0, b - a - 1) for a, b in zip(sequences, sequences[1:]))
 		result = {
-			"implementation": "Rust" if executable else "Python",
-			"quality": quality,
+			"bitrate_kbps": args.bitrate,
+			"channels": args.channels,
+			"frame_ms": args.frame_ms,
+			"payload_kbps": round(payloadBytes * 8 / elapsed / 1000, 2),
+			"network_kbps": round(networkBytes * 8 / elapsed / 1000, 2),
 			"sources": args.sources,
 			"seconds": round(elapsed, 2),
 			"cpu_percent_one_core": round(cpu / elapsed * 100, 2),
@@ -153,6 +157,7 @@ def measure(args, executable, quality):
 			reader.join(1)
 			process.stdout.close()
 		session.close()
+		codec.close()
 
 
 def main():
@@ -161,19 +166,16 @@ def main():
 	parser.add_argument("--port", type=int, default=6838)
 	parser.add_argument("--seconds", type=float, default=10)
 	parser.add_argument("--sources", type=int, choices=(1, 2, 3), default=3)
-	parser.add_argument("--quality", choices=("48000_stereo", "48000_mono", "24000_mono", "16000_mono"))
-	parser.add_argument("--rust", help="Optional path to the unchanged Rust executable")
+	parser.add_argument("--bitrate", type=int, choices=(64, 96, 192), default=96)
+	parser.add_argument("--channels", type=int, choices=(1, 2), default=2)
+	parser.add_argument("--frame-ms", type=int, choices=(10, 20), default=10)
 	parser.add_argument("--child", action="store_true", help=argparse.SUPPRESS)
 	parser.add_argument("--key", help=argparse.SUPPRESS)
 	args = parser.parse_args()
 	if args.child:
 		child(args)
 		return
-	for quality in (
-		[args.quality] if args.quality else ("48000_stereo", "48000_mono", "24000_mono", "16000_mono")
-	):
-		for executable in [args.rust, None] if args.rust else [None]:
-			print(json.dumps(measure(args, executable, quality)), flush=True)
+	print(json.dumps(measure(args)), flush=True)
 
 
 if __name__ == "__main__":

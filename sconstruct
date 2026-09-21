@@ -14,7 +14,7 @@ from typing import Final
 # Linters aren't aware about them.
 # To avoid PyRight `reportUndefinedVariable` errors about them they are imported explicitly.
 # When using other  Scons functions please add them to the line below.
-from SCons.Script import EnsurePythonVersion, Variables, BoolVariable, Environment, Copy
+from SCons.Script import EnsurePythonVersion, Variables, BoolVariable, Environment, Copy, COMMAND_LINE_TARGETS
 
 # Imports for type hints
 from SCons.Node import FS
@@ -82,10 +82,15 @@ env.Append(**env["addon_info"])
 
 
 addonFile = env.File("${addon_name}-${addon_version}.nvda-addon")
+opusDll = addonDir / "globalPlugins/remotePlusPlus/lib/opus.dll"
+translationOnly = bool(COMMAND_LINE_TARGETS) and set(COMMAND_LINE_TARGETS) <= {"pot", "mergePot"}
+if not opusDll.is_file() and not translationOnly:
+	raise RuntimeError("Missing Opus DLL. Run: uv run python tools/build_opus.py")
 excludedFiles = tuple(buildVars.excludedFiles)
 # Exclude binaries left by an earlier build of the Rust implementation.
 excludedFiles += ("globalPlugins/remotePlusPlus/bin/**",)
 addon = env.NVDAAddon(addonFile, env.Dir(addonDir), excludePatterns=excludedFiles)
+env.Depends(addon, str(opusDll))
 
 langDirs: list[FS.Dir] = [env.Dir(d) for d in env.Glob(localeDir / "*/") if d.isdir()]
 

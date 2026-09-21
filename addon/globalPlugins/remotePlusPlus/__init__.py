@@ -114,15 +114,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		if state == "on":
 			if self.service.audio.state != "on":
 				return
-			if self.service.getAudioQualityFallback():
-				# Translators: An older controlled computer cannot negotiate the selected quality.
-				ui.message(
-					_(
-						"Audio relay enabled using 48 kHz stereo. The remote computer does not support the selected quality.",
-					),
-				)
-			else:
-				ui.message(_("Audio relay enabled"))
+			ui.message(_("Audio relay enabled"))
 		elif state == "error" and error:
 			ui.message(_("Audio relay error: {error}").format(error=error))
 

@@ -35,12 +35,13 @@ from config.configFlags import RemoteConnectionMode
 from .audio import (
 	AUDIO_ENVELOPE_KEY,
 	AUDIO_PORT,
-	AUDIO_QUALITIES,
+	AUDIO_PROTOCOL_VERSION,
 	AUDIO_REQUEST_TIMEOUT,
 	AUDIO_SOURCE_SYSTEM,
 	AudioService,
 	AudioSettings,
 	AudioStateEvent,
+	audioSettingsFromEnvelope,
 	make_audio_envelope,
 	nativeAudioErrorMessage,
 	normalizeAudioSettings,
@@ -361,7 +362,6 @@ class RemoteService:
 		self._audioSendWrapper: Callable | None = None
 		self._mutedClient: Any = None
 		self._originalToggleMute: Callable | None = None
-		self._audioQualityFallback = False
 		self._remoteAudioSources = 0
 		self._audioRequestPending = False
 		synthDriverHandler.synthChanged.register(self._handlePublisherSynthChanged)
@@ -609,6 +609,7 @@ class RemoteService:
 					sources=self.audio.sources,
 					status="ok",
 					includes_nvda_speech=self._publisherIncludesSpeech(self.audio.sources),
+					**self.audio.settings.formatFields(),
 				),
 			)
 
@@ -668,10 +669,6 @@ class RemoteService:
 			sources = self.getAudioSources()
 		if sources:
 			self.requestAudioSources(sources)
-
-	def getAudioQualityFallback(self) -> bool:
-		"""Whether this session uses legacy quality instead of the saved preference."""
-		return self._audioQualityFallback
 
 	def isAudioRequestPending(self) -> bool:
 		return self._audioRequestPending
@@ -754,7 +751,7 @@ class RemoteService:
 					request_id=requestId,
 					sources=sources,
 					port=AUDIO_PORT,
-					quality=settings.quality,
+					**settings.formatFields(),
 				),
 			)
 			if sent:
@@ -774,9 +771,10 @@ class RemoteService:
 			self._pendingAudioRequests.pop(requestId)[0].cancel()
 			self._audioRequestPending = False
 			self._remoteAudioSources = 0
-			# Translators: Audio negotiation timed out, which may also indicate a network problem.
+			# Translators: Audio needs the built-in Remote Access connection on both computers.
 			error = _(
-				"The remote computer did not respond to the audio request. It may not support audio relay.",
+				"No audio response. Check the connection and make sure both computers use NVDA's "
+				"built-in Remote Access with the same Remote++ version.",
 			)
 			self.audio.notify_state("error", error)
 
@@ -809,17 +807,19 @@ class RemoteService:
 		client = self.getClient()
 		if not client or not client.followerSession or origin not in client.followerSession.leaders:
 			return
-		quality = envelope.get("quality", AUDIO_QUALITIES[0])
+		settings = audioSettingsFromEnvelope(envelope)
 		error = None
 		errorCode = None
 		if self._publisherOwner not in {None, origin} and self.audio.is_active():
 			# Translators: Another controller currently owns the shared audio stream.
 			error = _("Another controller is using remote audio. Try again after they turn it off.")
-		elif quality not in AUDIO_QUALITIES:
-			# Translators: The peer requested an unknown audio quality.
-			error = _("The requested audio quality is not supported.")
+		elif sources and envelope.get("version") != AUDIO_PROTOCOL_VERSION:
+			# Translators: PCM audio from older Remote++ versions is no longer supported.
+			error = _("Upgrade Remote++ on both computers to use Opus audio.")
+		elif sources and settings is None:
+			# Translators: The peer requested invalid or unsupported Opus settings.
+			error = _("The requested Opus audio settings are not supported.")
 		else:
-			settings = AudioSettings(quality=quality)
 			if sources == 0:
 				self._activeAudioRequestId = None
 				self.audio.stop()
@@ -827,6 +827,7 @@ class RemoteService:
 			elif not (
 				self.audio.state == "on" and self.audio.sources == sources and self.audio.settings == settings
 			):
+				assert settings is not None
 				self._activeAudioRequestId = None
 				self.audio.stop()
 				if epoch != self._audioEpoch:
@@ -878,7 +879,8 @@ class RemoteService:
 				status="error" if error else "ok",
 				message=error,
 				error_code=errorCode,
-				quality=quality,
+				version=envelope["version"],
+				**(settings.formatFields() if settings else {}),
 				includes_nvda_speech=not error and self._publisherIncludesSpeech(sources),
 			),
 		):
@@ -932,18 +934,16 @@ class RemoteService:
 			return
 		status = envelope.get("status")
 		sources = normalize_source_mask(envelope.get("sources"))
-		quality = envelope.get("quality", AUDIO_QUALITIES[0])
+		negotiated = audioSettingsFromEnvelope(envelope)
 		if (
 			status != "ok"
 			or sources != requestedSources
-			or quality not in {settings.quality, AUDIO_QUALITIES[0]}
+			or envelope.get("version") != AUDIO_PROTOCOL_VERSION
+			or (sources and negotiated != settings._replace(bufferMs=0))
 		):
-			self._remoteAudioSources = 0
-			self.audio.stop()
-			self.audio.notify_state("error", self._remoteAudioErrorMessage(envelope))
+			self.stopAudio(error=self._remoteAudioErrorMessage(envelope))
 			return
 		self._audioPeerId = origin
-		self._audioQualityFallback = quality != settings.quality
 		info = self.getCurrentConnectionInfo()
 		if sources == 0:
 			self._remoteAudioSources = 0
@@ -963,7 +963,7 @@ class RemoteService:
 				info.key,
 				sources=sources,
 				port=AUDIO_PORT,
-				settings=AudioSettings(settings.bufferMs, quality),
+				settings=settings,
 			)
 			if not started:
 				self.audio.notify_state("error", self.audio.error or _("Audio component unavailable."))
@@ -1114,7 +1114,6 @@ class RemoteService:
 			self._audioPeerId = None
 			self._activeAudioRequestId = None
 			self._remoteAudioIncludesSpeech = False
-			self._audioQualityFallback = False
 			self._queueAudioTask(self._stopNativeAudio, error)
 
 	def _stopNativeAudio(self, error: str | None) -> None:

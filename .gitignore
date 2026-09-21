@@ -12,3 +12,4 @@ manifest.ini
 *.egg-info
 /.validation/
 /addon/globalPlugins/remotePlusPlus/bin/
+/addon/globalPlugins/remotePlusPlus/lib/opus.dll

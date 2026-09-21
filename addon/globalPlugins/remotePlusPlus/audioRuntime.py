@@ -7,12 +7,14 @@ from collections.abc import Callable, Iterator
 from typing import Any
 import ctypes
 from functools import partial
+import math
 import threading
 import time
 import traceback
 
 from .audioTransport import AudioError, Session, UINT64_MASK, parseAudio
 from .audioCom import clearExceptionFrames, comApartment
+from .audioCodec import OpusCodec, RATE
 
 
 def mixPcm(first: bytes, second: bytes) -> bytes:
@@ -61,14 +63,18 @@ class PlaybackBuffer:
 		self.target = max(1, bufferMs // 5)
 		self.frames: deque[bytes] = deque(maxlen=bufferMs // 5 + 8)
 		self.started = False
+		self.underrunAt: float | None = None
 
 	def clear(self) -> None:
 		self.frames.clear()
 		self.started = False
+		self.underrunAt = None
 
 	def pop(self, *, underrun: bool = True) -> bytes | None:
 		if not self.frames:
 			if underrun:
+				if self.started:
+					self.underrunAt = time.monotonic()
 				self.started = False
 			return None
 		if not self.started:
@@ -91,17 +97,25 @@ class AudioRuntime:
 	) -> None:
 		self.host, self.port, self.key = host, port, key
 		self.role = role
-		self.rate = int(settings.quality.split("_")[0])
-		self.channels = 2 if settings.quality.endswith("stereo") else 1
-		self.frameBytes = self.rate // 200 * self.channels * 2
+		self.rate = RATE
+		self.channels = settings.channels
+		self.bitrateKbps = settings.bitrateKbps
+		self.frameMs = settings.frameMs
+		self.frameBytes = self.rate * self.frameMs // 1000 * self.channels * 2
+		self.playBytes = self.rate // 200 * self.channels * 2
+		self.payloadBytes = self.bitrateKbps * self.frameMs // 8
+		self.codec: OpusCodec | None = None
 		self.stopping = threading.Event()
-		self.condition = threading.Condition()
+		# Queue and player state share one lock, including mute and stop.
 		self.playLock = threading.RLock()
+		self.condition = threading.Condition(self.playLock)
 		self.player: Any = None
 		self.muted = muted
 		self.playEpoch = 0
 		self.buffer = PlaybackBuffer(settings.bufferMs)
 		self.captureBuffers = {source: bytearray() for source in (1, 2) if sources & source}
+		self.lastCaptured = 0.0
+		self.encoderTailSamples = 0
 		self.workers: list[threading.Thread] = []
 		self.error: Exception | None = None
 		self.readyCount = 0
@@ -168,15 +182,29 @@ class AudioRuntime:
 			if discontinuity:
 				buffer.clear()
 			buffer.extend(pcm)
+			if pcm:
+				self.lastCaptured = time.monotonic()
 			# 40 ms per device, dropping whole sample frames on overflow.
-			excess = len(buffer) - self.frameBytes * 8
+			excess = len(buffer) - self.playBytes * 8
 			if excess > 0:
 				del buffer[:excess]
 
 	def _mix(self) -> bytes | None:
 		with self.condition:
-			if not any(len(buffer) >= self.frameBytes for buffer in self.captureBuffers.values()):
+			if self.stopping.is_set():
 				return None
+			available = min(self.frameBytes, max(map(len, self.captureBuffers.values()), default=0))
+			if available < self.frameBytes:
+				# WASAPI 空闲时可能不再回调；等待一个帧周期后补齐尾帧。
+				if (
+					not available and not self.encoderTailSamples
+				) or time.monotonic() - self.lastCaptured < self.frameMs / 1000:
+					return None
+			if available and self.codec is not None:
+				self.encoderTailSamples = self.codec.lookaheadSamples
+			# 已补的零也会排出编码器尾音，避免自然停音后重复补帧。
+			paddingSamples = (self.frameBytes - available) // (self.channels * 2)
+			self.encoderTailSamples = max(0, self.encoderTailSamples - paddingSamples)
 			frames: list[bytes] = []
 			for buffer in self.captureBuffers.values():
 				count = min(len(buffer), self.frameBytes)
@@ -195,18 +223,46 @@ class AudioRuntime:
 			self.receiving = False
 			self.nextSequence = None
 			self._clearPlayback()
+			if self.codec is not None:
+				self.codec.reset()
 			event({"type": "media", "receiving": False})
-		parsed = parseAudio(packet, identity, self.frameBytes) if packet else None
-		if parsed is None:
+		parsed = parseAudio(packet, identity, self.payloadBytes) if packet else None
+		if parsed is None or self.codec is None or self.stopping.is_set():
 			return
 		sequence, payload = parsed
-		if self.nextSequence is not None and (sequence - self.nextSequence) & UINT64_MASK > UINT64_MASK // 2:
+		gap = (sequence - self.nextSequence) & UINT64_MASK if self.nextSequence is not None else 0
+		if gap > UINT64_MASK // 2:
+			return
+		with self.condition:
+			epoch = self.playEpoch
+		try:
+			if gap * self.frameMs > 40:
+				self.codec.reset()
+				pcm = self.codec.decode(payload)
+				with self.playLock:
+					if epoch == self.playEpoch:
+						self._clearPlayback()
+						epoch = self.playEpoch
+			else:
+				pcm = b"".join(self.codec.decode(None) for _ in range(gap)) + self.codec.decode(payload)
+		except ValueError:
+			# Malformed media cannot keep Remote speech suppressed.
+			self.codec.reset()
 			return
 		self.nextSequence = (sequence + 1) & UINT64_MASK
 		self.lastReceived = now
 		with self.condition:
-			if not self.muted:
-				self.buffer.frames.append(payload)
+			if not self.muted and not self.stopping.is_set() and epoch == self.playEpoch:
+				if self.buffer.underrunAt is not None:
+					if 0 < gap * self.frameMs <= 40:
+						# 声卡在途音频也已耗尽时，不补播已错过起播时间的 5 ms 块。
+						elapsed = max(0, time.monotonic() - self.buffer.underrunAt)
+						expired = min(gap * self.frameMs // 5, math.ceil(elapsed * 200))
+						pcm = pcm[expired * self.playBytes :]
+					self.buffer.underrunAt = None
+				self.buffer.frames.extend(
+					pcm[i : i + self.playBytes] for i in range(0, len(pcm), self.playBytes)
+				)
 				self.condition.notify_all()
 		if not self.receiving:
 			self.receiving = True
@@ -268,7 +324,13 @@ class AudioRuntime:
 		try:
 			if self.stopping.is_set():
 				return
-			session.open(self.host, self.port, self.key, self.role, self.frameBytes)
+			self.codec = OpusCodec(
+				self.channels,
+				self.bitrateKbps,
+				self.frameMs,
+				encoder=self.role == "publisher",
+			)
+			session.open(self.host, self.port, self.key, self.role, self.payloadBytes)
 			if self.role == "publisher":
 				from .audioCapture import capture
 
@@ -308,11 +370,11 @@ class AudioRuntime:
 					while nextFrame <= now and not self.stopping.is_set():
 						payload = self._mix()
 						if payload is None:
-							nextFrame = now + 0.005
+							nextFrame = now + self.frameMs / 1000
 							break
-						session.send(sequence, payload)
+						session.send(sequence, self.codec.encode(payload))
 						sequence = (sequence + 1) & UINT64_MASK
-						nextFrame += 0.005
+						nextFrame += self.frameMs / 1000
 		except Exception as error:
 			if not self.stopping.is_set():
 				event(
@@ -326,9 +388,14 @@ class AudioRuntime:
 			try:
 				self.stop()
 			finally:
-				session.close()
-				for worker in self.workers:
-					worker.join()
+				try:
+					session.close()
+					for worker in self.workers:
+						worker.join()
+				finally:
+					if self.codec is not None:
+						self.codec.close()
+						self.codec = None
 
 	def _checkError(self) -> None:
 		if self.error is not None:

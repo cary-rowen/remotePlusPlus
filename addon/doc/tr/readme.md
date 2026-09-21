@@ -96,10 +96,16 @@ ses kullanılamaz ya da istek zaman aşımına uğrar; Remote bağlantısı norm
 Varsayılan olarak ses kısayolu atanmaz.
 
 NVDA Ayarları → Remote++ bölümünde oynatma arabelleği (en az, varsayılan;
-10, 20, 40 veya 80 ms) ve aktarım kalitesi (48 kHz stereo, varsayılan;
-48, 24 veya 16 kHz mono) seçilebilir. Genel tercihler tüm bağlantılara uygulanır.
+10, 20, 40 veya 80 ms), toplam bit hızı (64, 96 varsayılan, 192 kbps),
+kanallar (mono veya varsayılan stereo) ve aktarım modu seçilebilir.
+Düşük gecikme modu paket başına 10 ms (varsayılan), dengeli mod 20 ms kullanır.
+Dengeli mod paket ek yükünü azaltır ancak bekleme süresini artırır. Örnekleme hızı
+48 kHz olarak sabittir. En az arabellek sıfır gecikme anlamına gelmez.
+Genel tercihler tüm bağlantılara uygulanır.
 Uygula, seçili kaynakları koruyarak etkin dinlemeyi kısa süreli yeniden başlatır;
-kapalı sesi açmaz. Eski ses istemcilerinde 48 kHz stereo kullanılır ve tercih korunur.
+kapalı sesi açmaz. Her iki bilgisayarda Opus destekleyen Remote++ gerekir;
+eski PCM aktarımına dönülmez. Normal uzaktan denetim ve konuşma çalışmaya devam eder.
 
-Python modülü 16 bit PCM ve 5 ms çerçeveler kullanır; varsayılan 48 kHz stereodur. Ses
+Ses NVDA içinde çalışır ve eklentiyle gelen x64 libopus DLL ile sıkıştırılır;
+ayrı bir çalışma ortamı kurulması gerekmez. Çözülen ses 5 ms bloklar halinde oynatılır. Ses
 protokolü şifrelenmez; güvenilir ağ veya VPN kullanın.

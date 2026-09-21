@@ -96,10 +96,16 @@ modulo audio, l'audio viene segnalato come non disponibile o va in timeout, ment
 connessione Remote resta attiva. Non viene assegnata una scorciatoia audio.
 
 In Impostazioni NVDA → Remote++ si possono scegliere il buffer di riproduzione
-(minimo, predefinito; 10, 20, 40 o 80 ms) e la qualità (48 kHz stereo, predefinita;
-48, 24 o 16 kHz mono). Le preferenze sono globali: Applica riavvia brevemente
+(minimo, predefinito; 10, 20, 40 o 80 ms), il bitrate totale (64, 96 predefinito,
+192 kbps), i canali (mono o stereo predefinito) e la modalità di trasmissione.
+La modalità a bassa latenza usa pacchetti da 10 ms (predefinita); quella bilanciata
+usa 20 ms e riduce il sovraccarico dei pacchetti, aggiungendo attesa.
+La frequenza di campionamento è fissa a 48 kHz. Il buffer minimo non significa latenza zero.
+Le preferenze sono globali: Applica riavvia brevemente
 l'ascolto attivo mantenendo le sorgenti selezionate, senza attivare l'audio spento.
-I peer audio meno recenti usano 48 kHz stereo; la preferenza scelta viene conservata.
+Entrambi i computer devono avere Remote++ con supporto Opus; non si torna al vecchio
+formato PCM. Il normale controllo remoto e la sintesi vocale continuano a funzionare.
 
-Il modulo Python usa PCM a 16 bit e frame da 5 ms, di default a 48 kHz stereo. Il protocollo
+L'audio viene compresso all'interno di NVDA con la DLL x64 libopus inclusa nel componente,
+senza installare altri ambienti di esecuzione. L'audio decodificato viene riprodotto in blocchi da 5 ms. Il protocollo
 audio non è cifrato: usare una rete fidata o una VPN.
