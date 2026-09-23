@@ -10,6 +10,7 @@ on:
     branches: [ main, master ]
 
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   build:
@@ -17,7 +18,7 @@ jobs:
     # Do not modify this repo name with your own one! (should remain the template)
     if: github.repository != 'nvaccess/addonTemplate'
 
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
     - name: Keep checkout line endings for code checks
@@ -25,7 +26,7 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v7
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@v10.1.0
       with:
         enable-cache: true
     - name: Install dependencies
@@ -38,7 +39,7 @@ jobs:
     - name: Code checks
       env:
         SKIP: no-commit-to-branch,pyright
-      run: uv run python -m pre_commit run --all-files
+      run: uv run prek run --all-files
 
     - name: Build pinned Opus codec
       run: uv run python tools/build_opus.py
