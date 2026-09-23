@@ -24,7 +24,7 @@ import ui
 import _remoteClient
 
 from .service import RemoteService
-from .audio import AUDIO_SOURCE_MICROPHONE, AUDIO_SOURCE_SYSTEM, AudioStateEvent
+from .audio import AUDIO_SOURCE_SYSTEM, AUDIO_SOURCE_VOICE, AudioStateEvent
 from . import interface
 from .interface import ConnectionManagerDialog
 
@@ -58,7 +58,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			self._performConnectToDefault,
 			self._performShowManager,
 			self._performToggleSystemAudio,
-			self._performToggleMicrophone,
+			self._performToggleVoiceCall,
 		)
 		self.service.setAudioStateCallback(self._onAudioStateChanged)
 
@@ -242,8 +242,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._performToggleAudioSource(AUDIO_SOURCE_SYSTEM)
 
 	@alwaysCallAfter
-	def _performToggleMicrophone(self) -> None:
-		self._performToggleAudioSource(AUDIO_SOURCE_MICROPHONE)
+	def _performToggleVoiceCall(self) -> None:
+		self._performToggleAudioSource(AUDIO_SOURCE_VOICE)
 
 	def _performToggleAudioSource(self, source: int) -> None:
 		if not self.service.isRunning() or not self.service.isConnected():

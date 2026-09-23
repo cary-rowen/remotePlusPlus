@@ -12,6 +12,17 @@ from typing import Any, cast
 HEADER = struct.Struct(">4sBB16sQQ")
 UINT64_MASK = (1 << 64) - 1
 
+STREAM_SYSTEM_AUDIO = "system_audio"
+STREAM_VOICE_CONTROLLED_TO_CONTROLLER = "voice_controlled_to_controller"
+STREAM_VOICE_CONTROLLER_TO_CONTROLLED = "voice_controller_to_controlled"
+AUDIO_STREAMS = frozenset(
+	{
+		STREAM_SYSTEM_AUDIO,
+		STREAM_VOICE_CONTROLLED_TO_CONTROLLER,
+		STREAM_VOICE_CONTROLLER_TO_CONTROLLED,
+	},
+)
+
 # ponytail: one OS resolver at a time; native cancellable DNS if a stuck
 # resolver must be replaceable before Windows finishes its own retries.
 _dnsSlot = BoundedSemaphore(1)
@@ -85,7 +96,17 @@ class Session:
 		self.controlBuffer = bytearray()
 		self.payloadMaxBytes = 1200
 
-	def open(self, host: str, port: int, key: str, role: str, requiredPayloadBytes: int) -> None:
+	def open(
+		self,
+		host: str,
+		port: int,
+		key: str,
+		role: str,
+		requiredPayloadBytes: int,
+		stream: str,
+	) -> None:
+		if stream not in AUDIO_STREAMS:
+			raise AudioError("control_connection_failed", "Invalid audio stream")
 		try:
 			deadline = time.monotonic() + 5
 			addresses = resolve(host, port, self.stop, deadline)
@@ -106,7 +127,9 @@ class Session:
 			if self.tcp is None:
 				raise lastError
 			self.tcp.settimeout(0.2)
-			self.tcp.sendall(json.dumps({"role": role, "key": key}).encode("utf-8") + b"\n")
+			self.tcp.sendall(
+				json.dumps({"role": role, "key": key, "stream": stream}).encode("utf-8") + b"\n",
+			)
 			responseBytes = bytearray()
 			deadline = time.monotonic() + 5
 			while not responseBytes.endswith(b"\n"):
@@ -127,7 +150,8 @@ class Session:
 				response.get("status"),
 				response.get("role"),
 				response.get("key"),
-			) != ("ok", role, key):
+				response.get("stream"),
+			) != ("ok", role, key, stream):
 				raise ValueError("Audio handshake rejected or identity mismatched")
 			identity = response.get("session_id")
 			if not isinstance(identity, str) or len(identity) != 32:

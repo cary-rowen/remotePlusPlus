@@ -9,6 +9,6 @@
 - Improve group handling and reordering in filtered connection lists.
 - Improve dialog focus handling and local server detection.
 - Add optional low-latency audio relay through NVDARemoteAudioServer.
-- Add separate menu toggles for remote system sounds and microphone input. The
+- Add separate menu toggles for remote system sounds and bidirectional voice calls. The
   current Remote host is reused with the fixed audio port 6838; no audio
   shortcut or per-connection audio settings are added.

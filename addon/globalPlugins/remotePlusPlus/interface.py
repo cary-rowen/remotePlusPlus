@@ -35,7 +35,7 @@ from .audio import (
 	AUDIO_BITRATES,
 	AUDIO_CHANNELS,
 	AUDIO_FRAME_VALUES,
-	AUDIO_SOURCE_MICROPHONE,
+	AUDIO_SOURCE_VOICE,
 	AUDIO_SOURCE_SYSTEM,
 	AudioSettings,
 )
@@ -53,7 +53,11 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 	def makeSettings(self, sizer: wx.BoxSizer) -> None:
 		helper = BoxSizerHelper(self, sizer=sizer)
 		settings = self.service.connection_manager.getAudioSettings() if self.service else AudioSettings()
-		self.bufferChoice = helper.addLabeledControl(
+		voiceSettings = (
+			self.service.connection_manager.getVoiceAudioSettings() if self.service else AudioSettings()
+		)
+		helper.addItem(wx.StaticText(self, label=_("System audio")))
+		self.systemBufferChoice = helper.addLabeledControl(
 			# Translators: How much remote audio to buffer before playback.
 			_("Playback &buffer:"),
 			wx.Choice,
@@ -64,9 +68,8 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 				*[_("{milliseconds} ms").format(milliseconds=ms) for ms in AUDIO_BUFFER_VALUES[1:]],
 			],
 		)
-		self.bufferChoice.SetSelection(AUDIO_BUFFER_VALUES.index(settings.bufferMs))
-		self.bitrateChoice = helper.addLabeledControl(
-			# Translators: Total Opus bitrate, shared by both channels and audio sources.
+		self.systemBufferChoice.SetSelection(AUDIO_BUFFER_VALUES.index(settings.bufferMs))
+		self.systemBitrateChoice = helper.addLabeledControl(
 			_("Audio bit&rate:"),
 			wx.Choice,
 			choices=[
@@ -75,19 +78,59 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 				_("192 kbps"),
 			],
 		)
-		self.bitrateChoice.SetSelection(AUDIO_BITRATES.index(settings.bitrateKbps))
-		self.channelsChoice = helper.addLabeledControl(
+		self.systemBitrateChoice.SetSelection(AUDIO_BITRATES.index(settings.bitrateKbps))
+		self.systemChannelsChoice = helper.addLabeledControl(
 			_("Audio &channels:"),
 			wx.Choice,
 			choices=[_("Mono"), _("Stereo (default)")],
 		)
-		self.channelsChoice.SetSelection(AUDIO_CHANNELS.index(settings.channels))
-		self.frameChoice = helper.addLabeledControl(
+		self.systemChannelsChoice.SetSelection(AUDIO_CHANNELS.index(settings.channels))
+		self.systemFrameChoice = helper.addLabeledControl(
 			_("&Transmission mode:"),
 			wx.Choice,
 			choices=[_("Low latency: 10 ms per packet (default)"), _("Balanced: 20 ms per packet")],
 		)
-		self.frameChoice.SetSelection(AUDIO_FRAME_VALUES.index(settings.frameMs))
+		self.systemFrameChoice.SetSelection(AUDIO_FRAME_VALUES.index(settings.frameMs))
+		# Keep the original control names available to existing NVDA panel tests.
+		self.bufferChoice = self.systemBufferChoice
+		self.bitrateChoice = self.systemBitrateChoice
+		self.channelsChoice = self.systemChannelsChoice
+		self.frameChoice = self.systemFrameChoice
+		helper.addItem(wx.StaticText(self, label=_("Voice call")))
+		self.voiceBufferChoice = helper.addLabeledControl(
+			_("Playback &buffer:"),
+			wx.Choice,
+			choices=[
+				_("Minimum buffering (default)"),
+				*[_("{milliseconds} ms").format(milliseconds=ms) for ms in AUDIO_BUFFER_VALUES[1:]],
+			],
+		)
+		self.voiceBufferChoice.SetSelection(AUDIO_BUFFER_VALUES.index(voiceSettings.bufferMs))
+		self.voiceBitrateChoice = helper.addLabeledControl(
+			_("Audio bit&rate:"),
+			wx.Choice,
+			choices=[
+				_("64 kbps"),
+				_("96 kbps (default)"),
+				_("192 kbps"),
+			],
+		)
+		self.voiceBitrateChoice.SetSelection(AUDIO_BITRATES.index(voiceSettings.bitrateKbps))
+		self.voiceChannelsChoice = helper.addLabeledControl(
+			_("Audio &channels:"),
+			wx.Choice,
+			choices=[_("Mono"), _("Stereo (default)")],
+		)
+		self.voiceChannelsChoice.SetSelection(AUDIO_CHANNELS.index(voiceSettings.channels))
+		self.voiceFrameChoice = helper.addLabeledControl(
+			_("&Transmission mode:"),
+			wx.Choice,
+			choices=[
+				_("Low latency: 10 ms per packet (default)"),
+				_("Balanced: 20 ms per packet"),
+			],
+		)
+		self.voiceFrameChoice.SetSelection(AUDIO_FRAME_VALUES.index(voiceSettings.frameMs))
 		description = wx.StaticText(
 			self,
 			# Translators: Explanation below the remote audio preferences.
@@ -105,14 +148,21 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 		if self.service is None:
 			return
 		settings = AudioSettings(
-			AUDIO_BUFFER_VALUES[self.bufferChoice.GetSelection()],
-			AUDIO_BITRATES[self.bitrateChoice.GetSelection()],
-			AUDIO_CHANNELS[self.channelsChoice.GetSelection()],
-			AUDIO_FRAME_VALUES[self.frameChoice.GetSelection()],
+			AUDIO_BUFFER_VALUES[self.systemBufferChoice.GetSelection()],
+			AUDIO_BITRATES[self.systemBitrateChoice.GetSelection()],
+			AUDIO_CHANNELS[self.systemChannelsChoice.GetSelection()],
+			AUDIO_FRAME_VALUES[self.systemFrameChoice.GetSelection()],
 		)
-		if settings == self.service.connection_manager.getAudioSettings():
+		voiceSettings = AudioSettings(
+			AUDIO_BUFFER_VALUES[self.voiceBufferChoice.GetSelection()],
+			AUDIO_BITRATES[self.voiceBitrateChoice.GetSelection()],
+			AUDIO_CHANNELS[self.voiceChannelsChoice.GetSelection()],
+			AUDIO_FRAME_VALUES[self.voiceFrameChoice.GetSelection()],
+		)
+		manager = self.service.connection_manager
+		if settings == manager.getAudioSettings() and voiceSettings == manager.getVoiceAudioSettings():
 			return
-		if not self.service.connection_manager.setAudioSettings(settings):
+		if not manager.setAudioSettings(settings, voiceSettings):
 			# Translators: Settings could not be saved; the current audio continues unchanged.
 			_showError(self, _("Unable to save audio settings. The previous settings are still in use."))
 			return
@@ -152,7 +202,7 @@ class MenuHandler:
 		on_connect_default: Callable[[], None],
 		on_manage: Callable[[], None],
 		on_toggle_system_audio: Callable[[], None],
-		on_toggle_microphone: Callable[[], None],
+		on_toggle_voice_call: Callable[[], None],
 	) -> None:
 		"""Initialize the menu handler.
 
@@ -166,13 +216,13 @@ class MenuHandler:
 		self.on_connect_default = on_connect_default
 		self.on_manage = on_manage
 		self.on_toggle_system_audio = on_toggle_system_audio
-		self.on_toggle_microphone = on_toggle_microphone
+		self.on_toggle_voice_call = on_toggle_voice_call
 		self._menuSep: wx.MenuItem | None = None
 		self._manageItem: wx.MenuItem | None = None
 		self._swapItem: wx.MenuItem | None = None
 		self._connectDefaultItem: wx.MenuItem | None = None
 		self._systemAudioItem: wx.MenuItem | None = None
-		self._microphoneItem: wx.MenuItem | None = None
+		self._voiceCallItem: wx.MenuItem | None = None
 		self._orig_handleConnected: Callable[[ConnectionMode, bool], None] | None = None
 
 	@alwaysCallAfter
@@ -215,12 +265,12 @@ class MenuHandler:
 			_("Listen to remote system sounds"),
 		)
 		menu.Bind(wx.EVT_MENU, lambda evt: self.on_toggle_system_audio(), self._systemAudioItem)
-		# Translators: Menu item to listen to the controlled computer's microphone.
-		self._microphoneItem = menu.AppendCheckItem(
+		# Translators: Menu item to start a bidirectional voice call.
+		self._voiceCallItem = menu.AppendCheckItem(
 			wx.ID_ANY,
-			_("Listen to remote microphone"),
+			_("Voice call"),
 		)
-		menu.Bind(wx.EVT_MENU, lambda evt: self.on_toggle_microphone(), self._microphoneItem)
+		menu.Bind(wx.EVT_MENU, lambda evt: self.on_toggle_voice_call(), self._voiceCallItem)
 		if client.isConnected():
 			self.service.handleRemoteConnectionChanged(True)
 		self._updateMenuState(client.isConnected())
@@ -274,7 +324,7 @@ class MenuHandler:
 					self._swapItem,
 					self._connectDefaultItem,
 					self._systemAudioItem,
-					self._microphoneItem,
+					self._voiceCallItem,
 					self._menuSep,
 				):
 					if item is not None:
@@ -287,7 +337,7 @@ class MenuHandler:
 		self._swapItem = None
 		self._connectDefaultItem = None
 		self._systemAudioItem = None
-		self._microphoneItem = None
+		self._voiceCallItem = None
 		self._menuSep = None
 
 	def _handleMenuConnected(self, mode: ConnectionMode, connected: bool) -> None:
@@ -315,14 +365,14 @@ class MenuHandler:
 			if connected and self.service.isCurrentConnectionDefault():
 				shouldEnable = False
 			self._connectDefaultItem.Enable(shouldEnable)
-		if self._systemAudioItem and self._microphoneItem:
+		if self._systemAudioItem and self._voiceCallItem:
 			isLeader = self.service.isAudioLeader()
 			available = connected and isLeader and not self.service.isAudioRequestPending()
 			sources = self.service.getAudioSources()
 			self._systemAudioItem.Enable(available)
-			self._microphoneItem.Enable(available)
+			self._voiceCallItem.Enable(available)
 			self._systemAudioItem.Check(bool(sources & AUDIO_SOURCE_SYSTEM))
-			self._microphoneItem.Check(bool(sources & AUDIO_SOURCE_MICROPHONE))
+			self._voiceCallItem.Check(bool(sources & AUDIO_SOURCE_VOICE))
 
 
 def create_disconnect_confirmation_dialog() -> MessageDialog:

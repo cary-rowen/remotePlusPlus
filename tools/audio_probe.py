@@ -68,7 +68,14 @@ def measure(args):
 	session = transport.Session(threading.Event())
 	process = None
 	try:
-		session.open(args.host, args.port, key, "subscriber", codec.payloadBytes)
+		session.open(
+			args.host,
+			args.port,
+			key,
+			"subscriber",
+			codec.payloadBytes,
+			transport.STREAM_SYSTEM_AUDIO,
+		)
 		command = [sys._base_executable, str(Path(__file__).resolve()), "--child"]
 		command += [
 			f"--host={args.host}",

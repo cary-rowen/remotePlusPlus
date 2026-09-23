@@ -64,6 +64,7 @@ class SettingsPanelTests(unittest.TestCase):
 			spec.loader.exec_module(module)
 		manager = Mock()
 		manager.getAudioSettings.return_value = AudioSettings()
+		manager.getVoiceAudioSettings.return_value = AudioSettings()
 		manager.setAudioSettings.return_value = True
 		service = SimpleNamespace(connection_manager=manager, applyAudioSettings=Mock())
 		module.RemotePlusPlusSettingsPanel.service = service
@@ -92,7 +93,7 @@ class SettingsPanelTests(unittest.TestCase):
 		panel.channelsChoice.SetSelection(0)
 		panel.frameChoice.SetSelection(1)
 		panel.onSave()
-		manager.setAudioSettings.assert_called_once_with(AudioSettings(80, 64, 1, 20))
+		manager.setAudioSettings.assert_called_once_with(AudioSettings(80, 64, 1, 20), AudioSettings())
 		service.applyAudioSettings.assert_called_once()
 		manager.getAudioSettings.return_value = AudioSettings(80, 64, 1, 20)
 		panel.onSave()

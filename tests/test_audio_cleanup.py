@@ -395,6 +395,7 @@ class CleanupTests(unittest.TestCase):
 		):
 			thread.return_value.start.side_effect = RuntimeError("cannot start thread")
 			self.assertFalse(service.start("localhost", "master", "test"))
+			self.assertEqual(service.state, "error")
 			service.terminate()
 		thread.return_value.join.assert_not_called()
 

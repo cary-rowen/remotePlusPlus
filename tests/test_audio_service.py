@@ -77,7 +77,16 @@ class AudioServiceTests(unittest.TestCase):
 			patch.object(audioModule, "Thread"),
 		):
 			self.assertTrue(service.start("remote.example", "master", "room", settings=settings))
-		start.assert_called_once_with("remote.example", 6838, "room", "subscriber", 1, settings, False)
+		start.assert_called_once_with(
+			"remote.example",
+			6838,
+			"room",
+			"subscriber",
+			1,
+			settings,
+			False,
+			"system_audio",
+		)
 		self.assertEqual(service.settings, settings)
 		service.stop()
 		runtime.stop.assert_called_once()
@@ -96,6 +105,7 @@ class AudioServiceTests(unittest.TestCase):
 		for fields in [
 			{"kind": []},
 			{"version": True},
+			{"version": 3.0},
 			{"kind": "response", "status": {}},
 			{"includes_nvda_speech": "true"},
 			{"includes_nvda_speech": 1},
@@ -107,6 +117,53 @@ class AudioServiceTests(unittest.TestCase):
 				{"version": 1, "kind": "request", "request_id": "", "sources": 1},
 			),
 		)
+		self.assertIsNone(
+			audioModule.parse_audio_envelope(
+				{"version": audioModule.AUDIO_PROTOCOL_VERSION, "kind": "hello", "sources": 1},
+			),
+		)
+
+	def testVoiceCallUsesIndependentDirectionalStreams(self):
+		service = AudioService()
+		runtimes = [runtimeWithEvents(), runtimeWithEvents()]
+		settings = audioModule.AudioSettings(20, 64, 1, 20)
+		with (
+			patch.object(audioModule, "createAudioRuntime", side_effect=runtimes) as create,
+			patch.object(audioModule, "Thread"),
+		):
+			self.assertTrue(
+				service.start(
+					"remote.example",
+					"master",
+					"room",
+					sources=audioModule.AUDIO_SOURCE_VOICE,
+					settings=settings,
+					voiceSettings=settings,
+				),
+			)
+		self.assertEqual(
+			[(call.args[3], call.args[4], call.args[7]) for call in create.call_args_list],
+			[
+				("subscriber", audioModule.AUDIO_SOURCE_VOICE, "voice_controlled_to_controller"),
+				("publisher", audioModule.AUDIO_SOURCE_MICROPHONE, "voice_controller_to_controlled"),
+			],
+		)
+		service.stop()
+		for runtime in runtimes:
+			runtime.stop.assert_called_once()
+
+	def testEnvelopeNamesSystemAndVoiceSettingsExplicitly(self):
+		envelope = audioModule.make_audio_envelope(
+			"request",
+			request_id="request-1",
+			system_audio=True,
+			voice_call=True,
+			system_audio_settings=audioModule.AudioSettings(10, 96, 2, 10),
+			voice_call_settings=audioModule.AudioSettings(20, 64, 1, 20),
+		)
+		self.assertEqual(audioModule.audio_sources_from_envelope(envelope), 3)
+		self.assertEqual(audioModule.parse_audio_envelope(envelope), envelope)
+		self.assertIsNone(audioModule.parse_audio_envelope(dict(envelope, voice_call=False)))
 
 	def testMuteBeforeStartupAndLive(self):
 		service = AudioService()
@@ -131,6 +188,61 @@ class AudioServiceTests(unittest.TestCase):
 			self.assertFalse(service.start("audio.example", "master", "key"))
 		self.assertEqual(service.state, "error")
 		self.assertEqual(service.error, "Audio component failed.")
+
+	def testPartialRuntimeInitializationIsCleanedUp(self):
+		service = AudioService()
+		first = runtimeWithEvents()
+		with (
+			patch.object(audioModule, "createAudioRuntime", side_effect=[first, ImportError("unavailable")]),
+			self.assertLogs(level="ERROR"),
+		):
+			self.assertFalse(
+				service.start(
+					"audio.example",
+					"master",
+					"key",
+					sources=audioModule.AUDIO_SOURCE_VOICE,
+				),
+			)
+		first.stop.assert_called_once()
+
+	def testUnexpectedWorkerFailureStopsOtherStreams(self):
+		service = AudioService()
+		failed = runtimeWithEvents()
+		other = runtimeWithEvents()
+		failed.run = Mock(side_effect=RuntimeError("worker failed"))
+		service._runtimes = {"failed": failed, "other": other}
+		service._generation = 1
+		with self.assertLogs(level="ERROR"):
+			service._run(failed, 1, "failed")
+		other.stop.assert_called_once()
+
+	def testLateReadyCannotReviveFailedSession(self):
+		service = AudioService()
+		runtime = runtimeWithEvents()
+		service._runtimes = {"system_audio": runtime}
+		service._generation = 1
+		service._state = "starting"
+		service._expectedReady = 1
+		with self.assertLogs(level="ERROR"):
+			service._event(
+				{"type": "error", "code": "audio_device_failed", "message": "device stopped"},
+				1,
+				"system_audio",
+			)
+		service._event({"type": "ready"}, 1, "system_audio")
+		self.assertEqual(service.state, "error")
+
+	def testStaleWorkerFailureCannotStopRestartedStreams(self):
+		service = AudioService()
+		old = runtimeWithEvents()
+		current = runtimeWithEvents()
+		service._runtimes = {"current": current}
+		service._generation = 2
+		old.run = Mock(side_effect=RuntimeError("stale worker failed"))
+		with self.assertLogs(level="ERROR"):
+			service._run(old, 1, "old")
+		current.stop.assert_not_called()
 
 	def testPublisherRejectsEmptySourceMask(self):
 		service = AudioService()

@@ -16,6 +16,18 @@ from logHandler import log
 
 from _remoteClient.connectionInfo import ConnectionMode
 
+try:
+	from .audioTransport import (
+		STREAM_SYSTEM_AUDIO,
+		STREAM_VOICE_CONTROLLED_TO_CONTROLLER,
+		STREAM_VOICE_CONTROLLER_TO_CONTROLLED,
+	)
+except ImportError:
+	# The module is also loaded standalone by the audio unit tests.
+	STREAM_SYSTEM_AUDIO = "system_audio"
+	STREAM_VOICE_CONTROLLED_TO_CONTROLLER = "voice_controlled_to_controller"
+	STREAM_VOICE_CONTROLLER_TO_CONTROLLED = "voice_controller_to_controlled"
+
 
 if TYPE_CHECKING:
 	from .audioRuntime import AudioRuntime
@@ -24,10 +36,12 @@ addonHandler.initTranslation()
 
 
 AUDIO_PORT = 6838
-AUDIO_PROTOCOL_VERSION = 2
+AUDIO_PROTOCOL_VERSION = 3
 AUDIO_ENVELOPE_KEY = "remotePlusPlus_audio"
 AUDIO_SOURCE_SYSTEM = 1
-AUDIO_SOURCE_MICROPHONE = 2
+AUDIO_SOURCE_VOICE = 2
+# Keep the internal bit value stable while exposing voice-call terminology.
+AUDIO_SOURCE_MICROPHONE = AUDIO_SOURCE_VOICE
 AUDIO_SOURCE_MASK = AUDIO_SOURCE_SYSTEM | AUDIO_SOURCE_MICROPHONE
 AUDIO_REQUEST_TIMEOUT = 8.0
 AUDIO_BUFFER_VALUES = (0, 10, 20, 40, 80)
@@ -37,7 +51,7 @@ AUDIO_FRAME_VALUES = (10, 20)
 
 
 class AudioSettings(NamedTuple):
-	"""Controller preferences; playback buffering is local to the listener."""
+	"""Settings for one audio category."""
 
 	bufferMs: int = 0
 	bitrateKbps: int = 96
@@ -51,6 +65,9 @@ class AudioSettings(NamedTuple):
 			"channels": self.channels,
 			"frame_ms": self.frameMs,
 		}
+
+	def envelopeFields(self) -> dict[str, str | int]:
+		return self.formatFields() | {"buffer_ms": self.bufferMs}
 
 
 def normalizeAudioSettings(value: Any) -> AudioSettings:
@@ -71,8 +88,8 @@ def normalizeAudioSettings(value: Any) -> AudioSettings:
 	)
 
 
-def audioSettingsFromEnvelope(value: dict[str, Any]) -> AudioSettings | None:
-	if value.get("codec") != "opus":
+def audioSettingsFromEnvelope(value: Any) -> AudioSettings | None:
+	if not isinstance(value, dict) or value.get("codec") != "opus":
 		return None
 	for name, choices in (
 		("bitrate_kbps", AUDIO_BITRATES),
@@ -81,7 +98,10 @@ def audioSettingsFromEnvelope(value: dict[str, Any]) -> AudioSettings | None:
 	):
 		if type(value.get(name)) is not int or value[name] not in choices:
 			return None
-	return AudioSettings(0, value["bitrate_kbps"], value["channels"], value["frame_ms"])
+	bufferMs = value.get("buffer_ms", 0)
+	if type(bufferMs) is not int or bufferMs not in AUDIO_BUFFER_VALUES:
+		return None
+	return AudioSettings(bufferMs, value["bitrate_kbps"], value["channels"], value["frame_ms"])
 
 
 AudioState = Literal["off", "starting", "on", "error"]
@@ -139,6 +159,10 @@ def make_audio_envelope(
 	kind: str,
 	*,
 	request_id: str | None = None,
+	system_audio: bool | None = None,
+	voice_call: bool | None = None,
+	system_audio_settings: AudioSettings | dict[str, Any] | None = None,
+	voice_call_settings: AudioSettings | dict[str, Any] | None = None,
 	sources: int | None = None,
 	**fields: Any,
 ) -> dict[str, Any]:
@@ -150,7 +174,27 @@ def make_audio_envelope(
 	if request_id is not None:
 		envelope["request_id"] = request_id
 	if sources is not None:
-		envelope["sources"] = sources
+		normalized = normalize_source_mask(sources)
+		if normalized is None:
+			raise ValueError("Invalid audio source mask")
+		system_audio = bool(normalized & AUDIO_SOURCE_SYSTEM) if system_audio is None else system_audio
+		voice_call = bool(normalized & AUDIO_SOURCE_VOICE) if voice_call is None else voice_call
+		# This field is accepted only to keep existing in-process callers readable.
+		envelope["sources"] = normalized
+	if system_audio is not None:
+		envelope["system_audio"] = system_audio
+	if voice_call is not None:
+		envelope["voice_call"] = voice_call
+	if system_audio and system_audio_settings is None:
+		system_audio_settings = AudioSettings()
+	if voice_call and voice_call_settings is None:
+		voice_call_settings = AudioSettings()
+	for name, value in (
+		("system_audio_settings", system_audio_settings),
+		("voice_call_settings", voice_call_settings),
+	):
+		if value is not None:
+			envelope[name] = value.envelopeFields() if isinstance(value, AudioSettings) else dict(value)
 	envelope.update(fields)
 	return envelope
 
@@ -160,22 +204,37 @@ def parse_audio_envelope(value: Any) -> dict[str, Any] | None:
 	if not isinstance(value, dict):
 		return None
 	value = cast(dict[str, Any], value)
-	if type(value.get("version")) is not int or value["version"] not in (1, AUDIO_PROTOCOL_VERSION):
+	if type(value.get("version")) is not int or value["version"] != AUDIO_PROTOCOL_VERSION:
 		return None
 	kind = value.get("kind")
 	if kind not in ("hello", "request", "response"):
 		return None
-	if value["version"] == 1 and kind != "request":
-		return None
 	request_id = value.get("request_id")
 	if request_id is not None and (not isinstance(request_id, str) or not request_id or len(request_id) > 80):
 		return None
+	if kind in ("request", "response") and request_id is None:
+		return None
 	if kind in ("request", "response") and (
-		request_id is None or "sources" not in value or normalize_source_mask(value["sources"]) is None
+		type(value.get("system_audio")) is not bool or type(value.get("voice_call")) is not bool
 	):
 		return None
-	if "sources" in value and normalize_source_mask(value["sources"]) is None:
+	if any(name in value for name in ("codec", "bitrate_kbps", "channels", "frame_ms", "buffer_ms")):
 		return None
+	if "sources" in value:
+		sources = normalize_source_mask(value["sources"])
+		declaredSources = audio_sources_from_envelope(value)
+		if sources is None or declaredSources is None or sources != declaredSources:
+			return None
+	for name, enabled in (
+		("system_audio_settings", value.get("system_audio")),
+		("voice_call_settings", value.get("voice_call")),
+	):
+		if name in value and audioSettingsFromEnvelope(value[name]) is None:
+			return None
+		if enabled and name not in value:
+			return None
+		if not enabled and name in value:
+			return None
 	if kind == "response" and value.get("status") not in ("ok", "error"):
 		return None
 	if "message" in value and value["message"] is not None and not isinstance(value["message"], str):
@@ -189,6 +248,14 @@ def parse_audio_envelope(value: Any) -> dict[str, Any] | None:
 	return dict(value)
 
 
+def audio_sources_from_envelope(value: dict[str, Any]) -> int | None:
+	if type(value.get("system_audio")) is not bool or type(value.get("voice_call")) is not bool:
+		return None
+	return (AUDIO_SOURCE_SYSTEM if value["system_audio"] else 0) | (
+		AUDIO_SOURCE_VOICE if value["voice_call"] else 0
+	)
+
+
 def createAudioRuntime(*args: Any) -> AudioRuntime:
 	from .audioRuntime import AudioRuntime
 
@@ -196,10 +263,11 @@ def createAudioRuntime(*args: Any) -> AudioRuntime:
 
 
 class AudioService:
-	"""Own audio workers for the active Remote session."""
+	"""Own independent stream workers for the active Remote session."""
 
 	def __init__(self) -> None:
 		self._lock = RLock()
+		self._runtimes: dict[str, AudioRuntime] = {}
 		self._runtime: AudioRuntime | None = None
 		self._threads: list[Thread] = []
 		self._closed = False
@@ -212,7 +280,10 @@ class AudioService:
 		self._isReceiving = False
 		self._muted = False
 		self.settings = AudioSettings()
+		self.voiceSettings = AudioSettings()
 		self._ready = Event()
+		self._readyStreams: set[str] = set()
+		self._expectedReady = 0
 		self._on_state_changed: Callable[[AudioStateEvent], None] | None = None
 
 	@property
@@ -247,17 +318,15 @@ class AudioService:
 
 	@property
 	def isReceiving(self) -> bool:
-		"""Whether this subscriber is receiving valid PCM, independent of readiness."""
+		"""Whether the system-audio subscriber is receiving valid PCM."""
 		with self._lock:
-			return self._state == "on" and self._role == "subscriber" and self._isReceiving
+			return self._state == "on" and self._isReceiving
 
 	def set_state_callback(self, callback: Callable[[AudioStateEvent], None]) -> None:
-		"""Set the callback invoked when audio worker state changes."""
 		with self._lock:
 			self._on_state_changed = callback
 
 	def notify_state(self, state: AudioState, error: str | None = None) -> None:
-		"""Notify the registered consumer of an externally detected state change."""
 		with self._lock:
 			notification = (AudioStateEvent(state, error, self._generation), self._on_state_changed)
 		self._notify(notification)
@@ -265,9 +334,55 @@ class AudioService:
 	def setMuted(self, muted: bool) -> None:
 		with self._lock:
 			self._muted = muted
-			runtime = self._runtime
-		if runtime is not None:
+			runtimes = tuple(self._runtimes.values())
+		for runtime in runtimes:
 			runtime.setMuted(muted)
+
+	def _streamSpecs(
+		self,
+		mode: ConnectionMode,
+		sources: int,
+		systemSettings: AudioSettings,
+		voiceSettings: AudioSettings,
+	) -> list[tuple[str, str, int, AudioSettings]]:
+		if mode == ConnectionMode.LEADER:
+			specs: list[tuple[str, str, int, AudioSettings]] = []
+			if sources & AUDIO_SOURCE_SYSTEM:
+				specs.append((STREAM_SYSTEM_AUDIO, "subscriber", AUDIO_SOURCE_SYSTEM, systemSettings))
+			if sources & AUDIO_SOURCE_VOICE:
+				specs.extend(
+					(
+						(
+							STREAM_VOICE_CONTROLLED_TO_CONTROLLER,
+							"subscriber",
+							AUDIO_SOURCE_VOICE,
+							voiceSettings,
+						),
+						(
+							STREAM_VOICE_CONTROLLER_TO_CONTROLLED,
+							"publisher",
+							AUDIO_SOURCE_MICROPHONE,
+							voiceSettings,
+						),
+					),
+				)
+			return specs
+		specs: list[tuple[str, str, int, AudioSettings]] = []
+		if sources & AUDIO_SOURCE_SYSTEM:
+			specs.append((STREAM_SYSTEM_AUDIO, "publisher", AUDIO_SOURCE_SYSTEM, systemSettings))
+		if sources & AUDIO_SOURCE_VOICE:
+			specs.extend(
+				(
+					(
+						STREAM_VOICE_CONTROLLED_TO_CONTROLLER,
+						"publisher",
+						AUDIO_SOURCE_MICROPHONE,
+						voiceSettings,
+					),
+					(STREAM_VOICE_CONTROLLER_TO_CONTROLLED, "subscriber", AUDIO_SOURCE_VOICE, voiceSettings),
+				),
+			)
+		return specs
 
 	def start(
 		self,
@@ -277,10 +392,11 @@ class AudioService:
 		sources: int = AUDIO_SOURCE_SYSTEM,
 		port: int = AUDIO_PORT,
 		settings: AudioSettings = AudioSettings(),
+		voiceSettings: AudioSettings | None = None,
 	) -> bool:
-		"""Start publisher or subscriber workers inside NVDA."""
+		failedRuntimes = ()
 		with self._lock:
-			if self._closed or self._runtime is not None:
+			if self._closed or self._runtimes:
 				return False
 		if not isinstance(host, str) or not host.strip():
 			self._set_error(_("Audio server host is unavailable."))
@@ -289,63 +405,98 @@ class AudioService:
 			self._set_error(_("Audio connection settings are invalid."))
 			return False
 		normalized_sources = normalize_source_mask(sources)
+		voiceSettings = voiceSettings or settings
 		if normalized_sources is None:
 			self._set_error(_("Audio source selection is invalid."))
 			return False
-		if normalizeAudioSettings(settings._asdict()) != settings:
+		if (
+			normalizeAudioSettings(settings._asdict()) != settings
+			or normalizeAudioSettings(voiceSettings._asdict()) != voiceSettings
+		):
 			self._set_error(_("Audio connection settings are invalid."))
 			return False
-		role = "subscriber" if mode == ConnectionMode.LEADER else "publisher"
-		if role == "publisher" and normalized_sources == 0:
+		if normalized_sources == 0:
 			self._set_error(_("No audio source is enabled."))
 			return False
+		specs = self._streamSpecs(mode, normalized_sources, settings, voiceSettings)
+		role = "subscriber" if mode == ConnectionMode.LEADER else "publisher"
 
 		with self._lock:
-			if self._closed or self._runtime is not None:
+			if self._closed or self._runtimes:
 				return False
-			generation = self._generation
+			generation = self._generation + 1
+			runtimes: dict[str, AudioRuntime] = {}
 			try:
-				runtime = createAudioRuntime(host.strip(), port, key, role, sources, settings, self._muted)
+				for stream, runtimeRole, captureSources, streamSettings in specs:
+					runtime = createAudioRuntime(
+						host.strip(),
+						port,
+						key,
+						runtimeRole,
+						captureSources,
+						streamSettings,
+						self._muted,
+						stream,
+					)
+					runtimes[stream] = runtime
 			except Exception:
 				log.error("Unable to initialize audio workers", exc_info=True)
 				notification = self._set_state_locked("error", _("Audio component failed."))
-				runtime = None
+				failedRuntimes = tuple(runtimes.values())
+				runtimes = {}
 			else:
-				self._runtime = runtime
-				self._generation += 1
-				generation = self._generation
+				self._runtimes = runtimes
+				self._runtime = next(iter(runtimes.values()), None)
+				self._generation = generation
 				self._role, self._sources = role, normalized_sources
 				self.settings = settings
+				self.voiceSettings = voiceSettings
 				self._ready = Event()
+				self._readyStreams = set()
+				self._expectedReady = len(runtimes)
 				notification = self._set_state_locked("starting", None)
 		self._notify(notification)
-		if runtime is None:
+		if not runtimes:
+			for runtime in failedRuntimes:
+				try:
+					runtime.stop()
+				except Exception:
+					log.error("Failed to stop audio worker", exc_info=True)
 			return False
 		try:
+			launched = False
 			with self._lock:
-				if self._closed or self._runtime is not runtime:
-					return False
-				self._threads = [thread for thread in self._threads if thread.is_alive()]
-				thread = Thread(
-					target=self._run,
-					args=(runtime, generation),
-					name="remotePlusPlusAudio",
-					daemon=True,
-				)
-				# Register only successfully started threads, before terminate can snapshot them.
-				thread.start()
-				self._threads.append(thread)
+				if not self._closed and self._generation == generation:
+					self._threads = [thread for thread in self._threads if thread.is_alive()]
+					launched = True
+					for stream, runtime in runtimes.items():
+						thread = Thread(
+							target=self._run,
+							args=(runtime, generation, stream),
+							name=f"remotePlusPlusAudio_{stream}",
+							daemon=True,
+						)
+						thread.start()
+						self._threads.append(thread)
+			if not launched:
+				# A starting callback may have stopped this generation before its workers
+				# were launched. Stop only workers still owned by this service.
+				with self._lock:
+					orphaned = tuple(
+						runtime
+						for stream, runtime in runtimes.items()
+						if self._runtimes.get(stream) is runtime
+					)
+				for runtime in orphaned:
+					runtime.stop()
+				return False
 		except RuntimeError:
-			runtime.stop()
-			with self._lock:
-				if self._runtime is runtime:
-					self._runtime = None
-			self._set_state("error", _("Audio component failed."), generation)
+			self.stop()
+			self._set_error(_("Audio component failed."))
 			return False
 		return True
 
 	def wait_until_ready(self, timeout: float = 6.0) -> bool:
-		"""Wait for the current audio worker to report that its streams are ready."""
 		with self._lock:
 			generation = self._generation
 			ready = self._ready
@@ -355,14 +506,15 @@ class AudioService:
 
 	def stop(self) -> None:
 		with self._lock:
-			runtime = self._runtime
+			runtimes = tuple(self._runtimes.values())
 			self._generation += 1
+			self._runtimes.clear()
 			self._runtime = None
 			self._role = None
 			self._sources = 0
 			self._ready.set()
 			notification = self._set_state_locked("off", None)
-		if runtime is not None:
+		for runtime in runtimes:
 			try:
 				runtime.stop()
 			except Exception:
@@ -374,8 +526,6 @@ class AudioService:
 			self._closed = True
 			threads = tuple(self._threads)
 		self.stop()
-		# Workers finish state callbacks under _lock; never join while holding it.
-		# Include retired generations whose device cleanup is still in progress.
 		for thread in threads:
 			thread.join()
 		with self._lock:
@@ -384,29 +534,59 @@ class AudioService:
 	def is_active(self) -> bool:
 		return self.state in {"starting", "on"}
 
-	def _event(self, event: dict[str, Any], generation: int) -> None:
+	def _event(self, event: dict[str, Any], generation: int, stream: str) -> None:
 		if event.get("type") == "ready":
-			self._set_state("on", None, generation)
+			with self._lock:
+				if (
+					generation != self._generation
+					or self._state != "starting"
+					or stream in self._readyStreams
+				):
+					return
+				self._readyStreams.add(stream)
+				ready = len(self._readyStreams) == self._expectedReady
+			if ready:
+				self._set_state("on", None, generation)
 		elif event.get("type") == "media" and type(event.get("receiving")) is bool:
 			with self._lock:
-				if generation == self._generation:
+				if generation == self._generation and stream == STREAM_SYSTEM_AUDIO:
 					self._isReceiving = event["receiving"]
 		elif event.get("type") == "error":
 			code = event.get("code")
 			log.error("Audio error (%s): %s", code, event.get("message"))
+			with self._lock:
+				if generation != self._generation:
+					return
+				runtimes = tuple(self._runtimes.values())
 			self._set_state(
 				"error",
 				nativeAudioErrorMessage(code),
 				generation,
 				code if isinstance(code, str) else None,
 			)
+			for runtime in runtimes:
+				try:
+					runtime.stop()
+				except Exception:
+					log.error("Failed to stop audio worker after an error", exc_info=True)
 
-	def _run(self, runtime: AudioRuntime, generation: int) -> None:
+	def _run(self, runtime: AudioRuntime, generation: int, stream: str | None = None) -> None:
+		stream = stream or STREAM_SYSTEM_AUDIO
 		try:
-			runtime.run(lambda event: self._event(event, generation))
+			runtime.run(lambda event: self._event(event, generation, stream))
 		except Exception:
 			log.error("Audio worker failed", exc_info=True)
+			with self._lock:
+				if generation != self._generation:
+					return
+				runtimes = tuple(self._runtimes.values())
 			self._set_state("error", _("Audio component failed."), generation)
+			for other in runtimes:
+				if other is not runtime:
+					try:
+						other.stop()
+					except Exception:
+						log.error("Failed to stop audio worker", exc_info=True)
 		finally:
 			try:
 				runtime.stop()
@@ -415,13 +595,19 @@ class AudioService:
 			with self._lock:
 				if generation != self._generation:
 					return
-				self._runtime = None
-				self._role = None
-				self._sources = 0
-				self._ready.set()
+				self._runtimes.pop(stream, None)
+				if self._runtime is runtime:
+					self._runtime = next(iter(self._runtimes.values()), None)
 				notification = None
-				if self._state != "error":
-					notification = self._set_state_locked("error", _("Audio component stopped unexpectedly."))
+				if not self._runtimes:
+					self._role = None
+					self._sources = 0
+					self._ready.set()
+					if self._state != "error":
+						notification = self._set_state_locked(
+							"error",
+							_("Audio component stopped unexpectedly."),
+						)
 			self._notify(notification)
 
 	def _set_state(

@@ -12,7 +12,7 @@ import threading
 import time
 import traceback
 
-from .audioTransport import AudioError, Session, UINT64_MASK, parseAudio
+from .audioTransport import AudioError, Session, STREAM_SYSTEM_AUDIO, UINT64_MASK, parseAudio
 from .audioCom import clearExceptionFrames, comApartment
 from .audioCodec import OpusCodec, RATE
 
@@ -94,9 +94,11 @@ class AudioRuntime:
 		sources: int,
 		settings: Any,
 		muted: bool,
+		stream: str = STREAM_SYSTEM_AUDIO,
 	) -> None:
 		self.host, self.port, self.key = host, port, key
 		self.role = role
+		self.stream = stream
 		self.rate = RATE
 		self.channels = settings.channels
 		self.bitrateKbps = settings.bitrateKbps
@@ -330,7 +332,7 @@ class AudioRuntime:
 				self.frameMs,
 				encoder=self.role == "publisher",
 			)
-			session.open(self.host, self.port, self.key, self.role, self.payloadBytes)
+			session.open(self.host, self.port, self.key, self.role, self.payloadBytes, self.stream)
 			if self.role == "publisher":
 				from .audioCapture import capture
 

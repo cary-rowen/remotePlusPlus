@@ -4,6 +4,7 @@ from array import array
 from contextlib import contextmanager
 import importlib
 import itertools
+import json
 import random
 from pathlib import Path
 import sys
@@ -32,6 +33,76 @@ def newRuntime(bitrate=96, channels=2, frameMs=10, buffer=0, role="subscriber", 
 
 
 class RuntimeTests(unittest.TestCase):
+	def testTransportHandshakeCarriesAndChecksStream(self):
+		identity = bytes(range(16))
+		response = (
+			json.dumps(
+				{
+					"status": "ok",
+					"role": "publisher",
+					"key": "test",
+					"stream": "voice_controller_to_controlled",
+					"session_id": identity.hex(),
+					"udp_port": 6388,
+					"tcp_heartbeat_interval_ms": 5000,
+					"udp_session_timeout_ms": 15000,
+					"udp_audio_payload_max_bytes": 1200,
+				},
+			).encode()
+			+ b"\n"
+		)
+
+		class FakeSocket:
+			family = 2
+
+			def __init__(self, datagram=False):
+				self.datagram = datagram
+				self.sent = []
+				self.read = response if not datagram else b"RAS1\x01\x02" + identity
+
+			def settimeout(self, value):
+				pass
+
+			def connect(self, address):
+				self.address = address
+
+			def sendall(self, payload):
+				self.sent.append(payload)
+
+			def recv(self, size):
+				value, self.read = self.read[:size], self.read[size:]
+				return value
+
+			def send(self, payload):
+				self.sent.append(payload)
+				return len(payload)
+
+			def getpeername(self):
+				return ("127.0.0.1", 6838)
+
+			def close(self):
+				pass
+
+		stop = threading.Event()
+		tcp = FakeSocket()
+		udp = FakeSocket(datagram=True)
+		with (
+			patch.object(transport, "resolve", return_value=[(2, 1, 6, "", ("127.0.0.1", 6838))]),
+			patch.object(transport.socket, "socket", side_effect=[tcp, udp]),
+		):
+			transport.Session(stop).open(
+				"localhost",
+				6838,
+				"test",
+				"publisher",
+				120,
+				"voice_controller_to_controlled",
+			)
+		self.assertEqual(
+			json.loads(tcp.sent[0]),
+			{"role": "publisher", "key": "test", "stream": "voice_controller_to_controlled"},
+		)
+
 	def receiver(self, **settings):
 		runtime = newRuntime(**settings)
 		runtime.codec = runtimeModule.OpusCodec(
@@ -438,6 +509,7 @@ class RuntimeTests(unittest.TestCase):
 
 	def testCodecIsReleasedWhenConnectionFailsBeforeCaptureStarts(self):
 		runtime = newRuntime(role="publisher")
+		runtime.stream = "voice_controller_to_controlled"
 		codec = runtimeModule.OpusCodec(2, 96, 10, encoder=True)
 		self.addCleanup(codec.close)
 		events = []
@@ -447,13 +519,21 @@ class RuntimeTests(unittest.TestCase):
 				transport.Session,
 				"open",
 				side_effect=transport.AudioError("control_connection_failed", "test"),
-			),
+			) as connect,
 		):
 			runtime._run(events.append)
 		self.assertIsNone(codec.state)
 		self.assertIsNone(runtime.codec)
 		self.assertFalse(runtime.workers)
 		self.assertEqual(events[-1]["code"], "control_connection_failed")
+		connect.assert_called_once_with(
+			runtime.host,
+			runtime.port,
+			runtime.key,
+			runtime.role,
+			runtime.payloadBytes,
+			runtime.stream,
+		)
 
 	def testCancelledRuntimeNeverConnects(self):
 		runtime = newRuntime()

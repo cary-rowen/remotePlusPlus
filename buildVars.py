@@ -35,7 +35,7 @@ addon_info = AddonInfo(
 - Improve dialog focus handling and local server detection.
 - Add optional low-latency audio relay through NVDARemoteAudioServer.
 - Add playback buffer and transmission quality options in NVDA Settings, with defaults clearly marked.
-- Add separate menu toggles for remote system sounds and microphone input. The
+- Add separate menu toggles for remote system sounds and bidirectional voice calls. The
   current Remote host is reused with the fixed audio port 6838; no audio
   shortcut or per-connection audio settings are added."""),
 	# Author(s)

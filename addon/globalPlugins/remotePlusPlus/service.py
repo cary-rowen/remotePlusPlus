@@ -38,9 +38,11 @@ from .audio import (
 	AUDIO_PROTOCOL_VERSION,
 	AUDIO_REQUEST_TIMEOUT,
 	AUDIO_SOURCE_SYSTEM,
+	AUDIO_SOURCE_VOICE,
 	AudioService,
 	AudioSettings,
 	AudioStateEvent,
+	audio_sources_from_envelope,
 	audioSettingsFromEnvelope,
 	make_audio_envelope,
 	nativeAudioErrorMessage,
@@ -121,21 +123,51 @@ class ConnectionManager:
 			return False
 
 	def getAudioSettings(self) -> AudioSettings:
-		"""Return global audio preferences, independent of saved connections."""
+		"""Return system-audio preferences, independent of saved connections."""
 		return normalizeAudioSettings(self.data.get("audio_settings"))
 
-	def setAudioSettings(self, settings: AudioSettings) -> bool:
+	def setAudioSettings(self, settings: AudioSettings, voiceSettings: AudioSettings | None = None) -> bool:
 		"""Persist preferences, restoring the previous values on write failure."""
-		if normalizeAudioSettings(settings._asdict()) != settings:
+		if normalizeAudioSettings(settings._asdict()) != settings or (
+			voiceSettings is not None and normalizeAudioSettings(voiceSettings._asdict()) != voiceSettings
+		):
 			return False
 		old = self.data.get("audio_settings")
+		oldVoice = self.data.get("voice_audio_settings")
 		self.data["audio_settings"] = settings._asdict()
+		if voiceSettings is not None:
+			self.data["voice_audio_settings"] = voiceSettings._asdict()
 		if self.saveConfig():
 			return True
 		if old is None:
 			self.data.pop("audio_settings", None)
 		else:
 			self.data["audio_settings"] = old
+		if voiceSettings is not None:
+			if oldVoice is None:
+				self.data.pop("voice_audio_settings", None)
+			else:
+				self.data["voice_audio_settings"] = oldVoice
+		return False
+
+	def getVoiceAudioSettings(self) -> AudioSettings:
+		"""Return voice-call preferences, defaulting to the system settings."""
+		value = self.data.get("voice_audio_settings")
+		if value is None:
+			return self.getAudioSettings()
+		return normalizeAudioSettings(value)
+
+	def setVoiceAudioSettings(self, settings: AudioSettings) -> bool:
+		if normalizeAudioSettings(settings._asdict()) != settings:
+			return False
+		old = self.data.get("voice_audio_settings")
+		self.data["voice_audio_settings"] = settings._asdict()
+		if self.saveConfig():
+			return True
+		if old is None:
+			self.data.pop("voice_audio_settings", None)
+		else:
+			self.data["voice_audio_settings"] = old
 		return False
 
 	def getCloseOnConnect(self) -> bool:
@@ -345,6 +377,7 @@ class RemoteService:
 		self._audioDisconnectCallback: Callable[[], None] | None = None
 		self._audioRequestLock = threading.RLock()
 		self._pendingAudioRequests: dict[str, tuple[threading.Timer, int, AudioSettings]] = {}
+		self._pendingAudioVoiceSettings: dict[str, AudioSettings] = {}
 		self._audioWorker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="remotePlusPlusAudio")
 		self._audioClosed = False
 		self._audioEpoch = 0
@@ -606,10 +639,18 @@ class RemoteService:
 				make_audio_envelope(
 					"response",
 					request_id=requestId,
-					sources=self.audio.sources,
+					system_audio=bool(self.audio.sources & AUDIO_SOURCE_SYSTEM),
+					voice_call=bool(self.audio.sources & AUDIO_SOURCE_VOICE),
+					system_audio_settings=self.audio.settings
+					if self.audio.sources & AUDIO_SOURCE_SYSTEM
+					else None,
+					voice_call_settings=(
+						getattr(self.audio, "voiceSettings", self.audio.settings)
+						if self.audio.sources & AUDIO_SOURCE_VOICE
+						else None
+					),
 					status="ok",
 					includes_nvda_speech=self._publisherIncludesSpeech(self.audio.sources),
-					**self.audio.settings.formatFields(),
 				),
 			)
 
@@ -630,7 +671,8 @@ class RemoteService:
 				make_audio_envelope(
 					"response",
 					request_id=requestId,
-					sources=0,
+					system_audio=False,
+					voice_call=False,
 					status="error",
 					message=event.error,
 					error_code=event.errorCode,
@@ -641,7 +683,14 @@ class RemoteService:
 	def _cancelRemoteAudio(self) -> None:
 		"""Best-effort release after timeout, playback failure, or local unload."""
 		if self._audioTransport is not None:
-			self._sendAudioMessage(make_audio_envelope("request", request_id=uuid.uuid4().hex, sources=0))
+			self._sendAudioMessage(
+				make_audio_envelope(
+					"request",
+					request_id=uuid.uuid4().hex,
+					system_audio=False,
+					voice_call=False,
+				),
+			)
 
 	def _queueAudioTask(self, task: Callable, *args: Any) -> None:
 		with self._audioRequestLock:
@@ -698,7 +747,7 @@ class RemoteService:
 		return True
 
 	def requestAudioSources(self, sources: int) -> bool:
-		"""Request that the follower publish the selected audio sources."""
+		"""Request system audio and/or a bidirectional voice call."""
 		normalized = normalize_source_mask(sources)
 		info = self.getCurrentConnectionInfo()
 		if normalized is None or not info or info.mode != ConnectionMode.LEADER:
@@ -726,17 +775,32 @@ class RemoteService:
 			)
 			timer.daemon = True
 			settings = self.connection_manager.getAudioSettings()
+			voiceSettings = self.connection_manager.getVoiceAudioSettings()
 			self._pendingAudioRequests[requestId] = (timer, normalized, settings)
+			self._pendingAudioVoiceSettings[requestId] = voiceSettings
 			self._audioRequestPending = True
 			self._remoteAudioSources = normalized
 			self._audioSettingsChanged = False
 			self._activeAudioRequestId = None
 			self._remoteAudioIncludesSpeech = False
 			epoch = self._audioEpoch
-		self._queueAudioTask(self._sendAudioRequest, requestId, normalized, settings, epoch)
+		self._queueAudioTask(self._sendAudioRequest, requestId, normalized, settings, voiceSettings, epoch)
 		return True
 
-	def _sendAudioRequest(self, requestId: str, sources: int, settings: AudioSettings, epoch: int) -> None:
+	def _sendAudioRequest(
+		self,
+		requestId: str,
+		sources: int,
+		settings: AudioSettings,
+		voiceSettings: AudioSettings | None = None,
+		epoch: int | None = None,
+	) -> None:
+		# Keep the old positional shape usable by in-process callers while all new
+		# requests carry explicit system and voice settings.
+		if epoch is None:
+			epoch = voiceSettings if isinstance(voiceSettings, int) else self._audioEpoch
+			voiceSettings = self.connection_manager.getVoiceAudioSettings()
+		assert voiceSettings is not None
 		with self._audioRequestLock:
 			if epoch != self._audioEpoch:
 				return
@@ -749,9 +813,11 @@ class RemoteService:
 				make_audio_envelope(
 					"request",
 					request_id=requestId,
-					sources=sources,
+					system_audio=bool(sources & AUDIO_SOURCE_SYSTEM),
+					voice_call=bool(sources & AUDIO_SOURCE_VOICE),
+					system_audio_settings=settings if sources & AUDIO_SOURCE_SYSTEM else None,
+					voice_call_settings=voiceSettings if sources & AUDIO_SOURCE_VOICE else None,
 					port=AUDIO_PORT,
-					**settings.formatFields(),
 				),
 			)
 			if sent:
@@ -760,6 +826,7 @@ class RemoteService:
 					pending[0].start()
 				return
 			self._pendingAudioRequests.pop(requestId, None)
+			self._pendingAudioVoiceSettings.pop(requestId, None)
 			self._audioRequestPending = False
 		self.audio.notify_state("error", _("The remote audio control channel is unavailable."))
 
@@ -769,6 +836,7 @@ class RemoteService:
 				return
 			self._cancelRemoteAudio()
 			self._pendingAudioRequests.pop(requestId)[0].cancel()
+			self._pendingAudioVoiceSettings.pop(requestId, None)
 			self._audioRequestPending = False
 			self._remoteAudioSources = 0
 			# Translators: Audio needs the built-in Remote Access connection on both computers.
@@ -789,7 +857,10 @@ class RemoteService:
 		epoch = self._audioEpoch
 		if kind == "request":
 			# Remote dispatches inbound messages on the main thread, before worker handoff.
-			self._publisherIncludesSpeech(envelope["sources"])
+			sources = audio_sources_from_envelope(envelope)
+			if sources is None:
+				return
+			self._publisherIncludesSpeech(sources)
 			self._queueAudioTask(self._handleAudioRequest, envelope, origin, epoch)
 		elif kind == "response":
 			self._queueAudioTask(self._handleAudioResponse, envelope, origin, epoch)
@@ -798,7 +869,7 @@ class RemoteService:
 		if epoch != self._audioEpoch:
 			return
 		requestId = envelope.get("request_id")
-		sources = normalize_source_mask(envelope.get("sources"))
+		sources = audio_sources_from_envelope(envelope)
 		if not isinstance(requestId, str) or sources is None:
 			return
 		info = self.getCurrentConnectionInfo()
@@ -807,7 +878,8 @@ class RemoteService:
 		client = self.getClient()
 		if not client or not client.followerSession or origin not in client.followerSession.leaders:
 			return
-		settings = audioSettingsFromEnvelope(envelope)
+		systemSettings = audioSettingsFromEnvelope(envelope.get("system_audio_settings"))
+		voiceSettings = audioSettingsFromEnvelope(envelope.get("voice_call_settings"))
 		error = None
 		errorCode = None
 		if self._publisherOwner not in {None, origin} and self.audio.is_active():
@@ -816,7 +888,10 @@ class RemoteService:
 		elif sources and envelope.get("version") != AUDIO_PROTOCOL_VERSION:
 			# Translators: PCM audio from older Remote++ versions is no longer supported.
 			error = _("Upgrade Remote++ on both computers to use Opus audio.")
-		elif sources and settings is None:
+		elif sources & AUDIO_SOURCE_SYSTEM and systemSettings is None:
+			# Translators: The peer requested invalid or unsupported Opus settings.
+			error = _("The requested Opus audio settings are not supported.")
+		elif sources & AUDIO_SOURCE_VOICE and voiceSettings is None:
 			# Translators: The peer requested invalid or unsupported Opus settings.
 			error = _("The requested Opus audio settings are not supported.")
 		else:
@@ -825,9 +900,12 @@ class RemoteService:
 				self.audio.stop()
 				self._publisherOwner = None
 			elif not (
-				self.audio.state == "on" and self.audio.sources == sources and self.audio.settings == settings
+				self.audio.state == "on"
+				and self.audio.sources == sources
+				and (not sources & AUDIO_SOURCE_SYSTEM or self.audio.settings == systemSettings)
+				and (not sources & AUDIO_SOURCE_VOICE or self.audio.voiceSettings == voiceSettings)
 			):
-				assert settings is not None
+				assert systemSettings is not None or voiceSettings is not None
 				self._activeAudioRequestId = None
 				self.audio.stop()
 				if epoch != self._audioEpoch:
@@ -843,7 +921,8 @@ class RemoteService:
 						ConnectionMode.FOLLOWER,
 						info.key,
 						sources=sources,
-						settings=settings,
+						settings=systemSettings or AudioSettings(),
+						voiceSettings=voiceSettings or systemSettings or AudioSettings(),
 					)
 				deadline = time.monotonic() + 6
 				while started and self.audio.state == "starting" and epoch == self._audioEpoch:
@@ -875,12 +954,13 @@ class RemoteService:
 			make_audio_envelope(
 				"response",
 				request_id=requestId,
-				sources=sources,
+				system_audio=bool(sources & AUDIO_SOURCE_SYSTEM),
+				voice_call=bool(sources & AUDIO_SOURCE_VOICE),
+				system_audio_settings=systemSettings if sources & AUDIO_SOURCE_SYSTEM else None,
+				voice_call_settings=voiceSettings if sources & AUDIO_SOURCE_VOICE else None,
 				status="error" if error else "ok",
 				message=error,
 				error_code=errorCode,
-				version=envelope["version"],
-				**(settings.formatFields() if settings else {}),
 				includes_nvda_speech=not error and self._publisherIncludesSpeech(sources),
 			),
 		):
@@ -904,17 +984,24 @@ class RemoteService:
 					return
 				if envelope.get("status") == "error":
 					self.stopAudio(error=self._remoteAudioErrorMessage(envelope))
-				elif envelope.get("status") == "ok" and envelope.get("sources") == self._remoteAudioSources:
+				elif (
+					envelope.get("status") == "ok"
+					and audio_sources_from_envelope(envelope) == self._remoteAudioSources
+				):
 					self._remoteAudioIncludesSpeech = envelope.get("includes_nvda_speech") is True
 					self._setRemoteSpeechSuppressed(
 						self.audio.state == "on" and bool(self.audio.sources & AUDIO_SOURCE_SYSTEM),
 					)
 				return
 			timer, requestedSources, settings = pending
+			voiceSettings = self._pendingAudioVoiceSettings.pop(
+				requestId,
+				self.connection_manager.getVoiceAudioSettings(),
+			)
 			timer.cancel()
 		try:
 			with self._audioRequestLock:
-				self._startAudioResponse(envelope, origin, epoch, requestedSources, settings)
+				self._startAudioResponse(envelope, origin, epoch, requestedSources, settings, voiceSettings)
 		finally:
 			with self._audioRequestLock:
 				if epoch == self._audioEpoch:
@@ -929,17 +1016,23 @@ class RemoteService:
 		epoch: int,
 		requestedSources: int,
 		settings: AudioSettings,
+		voiceSettings: AudioSettings,
 	) -> None:
 		if epoch != self._audioEpoch:
 			return
 		status = envelope.get("status")
-		sources = normalize_source_mask(envelope.get("sources"))
-		negotiated = audioSettingsFromEnvelope(envelope)
+		sources = audio_sources_from_envelope(envelope)
+		negotiatedSystem = audioSettingsFromEnvelope(envelope.get("system_audio_settings"))
+		negotiatedVoice = audioSettingsFromEnvelope(envelope.get("voice_call_settings"))
+		if sources is None:
+			self.stopAudio(error=self._remoteAudioErrorMessage(envelope))
+			return
 		if (
 			status != "ok"
 			or sources != requestedSources
 			or envelope.get("version") != AUDIO_PROTOCOL_VERSION
-			or (sources and negotiated != settings._replace(bufferMs=0))
+			or (sources & AUDIO_SOURCE_SYSTEM and negotiatedSystem != settings)
+			or (sources & AUDIO_SOURCE_VOICE and negotiatedVoice != voiceSettings)
 		):
 			self.stopAudio(error=self._remoteAudioErrorMessage(envelope))
 			return
@@ -956,6 +1049,9 @@ class RemoteService:
 			self._activeAudioRequestId = envelope["request_id"]
 			self._remoteAudioIncludesSpeech = envelope.get("includes_nvda_speech") is True
 			client = self.getClient()
+			if client is None:
+				self.audio.notify_state("error", _("Remote connection information is unavailable."))
+				return
 			self.audio.setMuted(bool(client.localMachine.isMuted))
 			started = self.audio.start(
 				info.hostname,
@@ -964,6 +1060,7 @@ class RemoteService:
 				sources=sources,
 				port=AUDIO_PORT,
 				settings=settings,
+				voiceSettings=voiceSettings,
 			)
 			if not started:
 				self.audio.notify_state("error", self.audio.error or _("Audio component unavailable."))
@@ -1095,7 +1192,8 @@ class RemoteService:
 					make_audio_envelope(
 						"response",
 						request_id=self._activeAudioRequestId,
-						sources=0,
+						system_audio=False,
+						voice_call=False,
 						status="error",
 						error_code="publisher_stopped",
 						message=nativeAudioErrorMessage("publisher_stopped"),
@@ -1107,6 +1205,7 @@ class RemoteService:
 			for timer, _, _ in self._pendingAudioRequests.values():
 				timer.cancel()
 			self._pendingAudioRequests.clear()
+			self._pendingAudioVoiceSettings.clear()
 			self._audioRequestPending = False
 			self._remoteAudioSources = 0
 			self._audioSettingsChanged = False
