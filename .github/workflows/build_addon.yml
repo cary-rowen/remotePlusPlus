@@ -18,7 +18,7 @@ jobs:
     # Do not modify this repo name with your own one! (should remain the template)
     if: github.repository != 'nvaccess/addonTemplate'
 
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
     - name: Keep checkout line endings for code checks
