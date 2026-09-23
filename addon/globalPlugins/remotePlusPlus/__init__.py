@@ -17,12 +17,14 @@ import globalPluginHandler
 import inputCore
 from scriptHandler import script
 from gui.guiHelper import alwaysCallAfter
-from gui.message import MessageDialog
+from gui.message import MessageDialog, ReturnCode
+from gui.settingsDialogs import NVDASettingsDialog
 from logHandler import log
 import ui
 import _remoteClient
 
 from .service import RemoteService
+from .audio import AUDIO_SOURCE_SYSTEM, AUDIO_SOURCE_VOICE, AudioStateEvent
 from . import interface
 from .interface import ConnectionManagerDialog
 
@@ -45,13 +47,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def __init__(self) -> None:
 		super().__init__()
 		self.service = RemoteService()
+		interface.RemotePlusPlusSettingsPanel.service = self.service
+		NVDASettingsDialog.categoryClasses.append(interface.RemotePlusPlusSettingsPanel)
 		self._manager_dialog: ConnectionManagerDialog | None = None
+		self._disconnectConfirmationDialog: MessageDialog | None = None
+		self._switchToDefaultDialog: MessageDialog | None = None
 		self.menu_handler = interface.MenuHandler(
 			self.service,
 			self._performSwap,
 			self._performConnectToDefault,
 			self._performShowManager,
+			self._performToggleSystemAudio,
+			self._performToggleVoiceCall,
 		)
+		self.service.setAudioStateCallback(self._onAudioStateChanged)
 
 		# Monkey-patch _remoteClient to inject menu items when Remote is enabled/disabled
 		self._orig_initialize = _remoteClient.initialize
@@ -70,6 +79,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			log.error("Failed to restore _remoteClient functions", exc_info=True)
 
 		self.menu_handler.remove()
+		NVDASettingsDialog.categoryClasses.remove(interface.RemotePlusPlusSettingsPanel)
+		interface.RemotePlusPlusSettingsPanel.service = None
+		self.service.terminate()
 		self._closeManagerDialog()
 		super().terminate()
 
@@ -88,7 +100,74 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def _onRemoteTerminate(self) -> None:
 		self.menu_handler.remove()
 		self._closeManagerDialog()
+		self.service.handleRemoteConnectionChanged(False)
 		self._orig_terminate()
+
+	@alwaysCallAfter
+	def _onAudioStateChanged(self, event: AudioStateEvent) -> None:
+		if event.generation != self.service.audio.generation:
+			return
+		state, error = event.state, event.error
+		self.menu_handler.refresh()
+		if not self.service.isAudioLeader():
+			return
+		if state == "on":
+			if self.service.audio.state != "on":
+				return
+			ui.message(_("Audio relay enabled"))
+		elif state == "error" and error:
+			ui.message(_("Audio relay error: {error}").format(error=error))
+
+	def _focusDialog(self, dialog: MessageDialog | ConnectionManagerDialog) -> bool:
+		"""Raise and focus a dialog if it is still valid."""
+		try:
+			dialog.Raise()
+			dialog.SetFocus()
+		except RuntimeError:
+			return False
+		return True
+
+	def _confirmDisconnectForSwap(self) -> bool:
+		"""Ask whether to disconnect the current follower session before swapping."""
+		if self._disconnectConfirmationDialog:
+			if not self._focusDialog(self._disconnectConfirmationDialog):
+				self._disconnectConfirmationDialog = None
+			else:
+				return False
+
+		dialog = interface.create_disconnect_confirmation_dialog()
+		self._disconnectConfirmationDialog = dialog
+		try:
+			if dialog.ShowModal() != ReturnCode.YES:
+				log.info("Remote disconnection cancelled by user.")
+				return False
+		except Exception:
+			log.error("Error showing disconnect confirmation dialog", exc_info=True)
+			return False
+		finally:
+			self._disconnectConfirmationDialog = None
+		return True
+
+	def _confirmSwitchToDefault(self) -> bool:
+		"""Ask whether to switch from the active session to the default connection."""
+		if self._switchToDefaultDialog:
+			if not self._focusDialog(self._switchToDefaultDialog):
+				self._switchToDefaultDialog = None
+			else:
+				return False
+
+		dialog = interface.create_switch_to_default_dialog(self.service)
+		if dialog is None:
+			return False
+
+		self._switchToDefaultDialog = dialog
+		try:
+			return dialog.ShowModal() == ReturnCode.YES
+		except Exception:
+			log.error("Error showing switch to default connection dialog", exc_info=True)
+			return False
+		finally:
+			self._switchToDefaultDialog = None
 
 	@script(
 		# Translators: Description of the script to open the Remote Connection Manager.
@@ -107,18 +186,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			return
 
 		if self._manager_dialog is not None:
-			try:
-				self._manager_dialog.Raise()
-				self._manager_dialog.SetFocus()
+			if self._focusDialog(self._manager_dialog):
 				return
-			except RuntimeError:
-				self._manager_dialog = None
+			self._manager_dialog = None
 
-		if MessageDialog.blockingInstancesExist():
-			MessageDialog.focusBlockingInstances()
-			return
-
-		self._manager_dialog = ConnectionManagerDialog(self.service)
+		self._manager_dialog = ConnectionManagerDialog(self.service, self.menu_handler.refresh)
 		self._manager_dialog.Show()
 		self._manager_dialog.Raise()
 		self._manager_dialog.SetFocus()
@@ -145,12 +217,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(pgettext("remote", "Not connected"))
 			return
 
-		targetInfo, _ = self.service.getSwapTargetInfo()
+		targetInfo = self.service.getSwapTargetInfo()
 
 		currentInfo = self.service.getCurrentConnectionInfo()
 		if currentInfo and currentInfo.mode == _remoteClient.connectionInfo.ConnectionMode.FOLLOWER:
 			if self.service.shouldConfirmDisconnectAsFollower():
-				if not interface.show_swap_confirmation_dialog():
+				if not self._confirmDisconnectForSwap():
 					return
 
 		if targetInfo:
@@ -164,6 +236,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	)
 	def script_connectToDefault(self, gesture: inputCore.InputGesture) -> None:
 		self._performConnectToDefault()
+
+	@alwaysCallAfter
+	def _performToggleSystemAudio(self) -> None:
+		self._performToggleAudioSource(AUDIO_SOURCE_SYSTEM)
+
+	@alwaysCallAfter
+	def _performToggleVoiceCall(self) -> None:
+		self._performToggleAudioSource(AUDIO_SOURCE_VOICE)
+
+	def _performToggleAudioSource(self, source: int) -> None:
+		if not self.service.isRunning() or not self.service.isConnected():
+			ui.message(pgettext("remote", "Not connected"))
+			return
+		if not self.service.isAudioLeader():
+			ui.message(pgettext("remote", "Not the controlling computer"))
+			return
+		if self.service.isAudioRequestPending():
+			return
+		sources = self.service.getAudioSources() ^ source
+		if not self.service.requestAudioSources(sources):
+			ui.message(_("Unable to request remote audio."))
 
 	@alwaysCallAfter
 	def _performConnectToDefault(self) -> None:
@@ -187,6 +280,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("Already connected to default server."))
 			return
 
-		if interface.show_switch_to_default_dialog(self.service):
+		if self._confirmSwitchToDefault():
 			self.service.disconnect(silent=True)
 			self.service.performAutoConnect()

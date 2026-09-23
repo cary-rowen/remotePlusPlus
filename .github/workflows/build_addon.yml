@@ -17,26 +17,64 @@ jobs:
     # Do not modify this repo name with your own one! (should remain the template)
     if: github.repository != 'nvaccess/addonTemplate'
 
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
+    - name: Keep checkout line endings for code checks
+      run: git config --global core.autocrlf false
     - name: Checkout repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Install uv
       uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
     - name: Install dependencies
       run: |
-        sudo apt-get update  -y
-        sudo apt-get install -y gettext
+        choco install gettext --no-progress -y
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        "C:\Program Files\gettext-iconv\bin" >> $env:GITHUB_PATH
         uv sync
 
     - name: Code checks
-      run: export SKIP=no-commit-to-branch,pyright; uv run pre-commit run --all-files
+      env:
+        SKIP: no-commit-to-branch,pyright
+      run: uv run python -m pre_commit run --all-files
+
+    - name: Build pinned Opus codec
+      run: uv run python tools/build_opus.py
 
     - name: building addon
-      run: uv run scons && uv run scons pot
+      run: uv run python -m SCons
+
+    - name: Build translation template
+      run: uv run python -m SCons pot
+
+    - name: Test audio lifecycle and protocol
+      run: uv run python -m unittest discover -s tests
+
+    - name: Verify audio package and codec architecture
+      shell: python
+      run: |
+        from pathlib import Path
+        import struct
+        from zipfile import ZipFile
+
+        packages = list(Path(".").glob("*.nvda-addon"))
+        assert packages, "No add-on package was built"
+        for package in packages:
+            with ZipFile(package) as archive:
+                library = "globalPlugins/remotePlusPlus/lib/opus.dll"
+                binaries = [name for name in archive.namelist() if name.lower().endswith((".exe", ".dll", ".pyd"))]
+                assert binaries == [library], binaries
+                data = archive.read(library)
+                assert data == Path("addon", library).read_bytes()
+                pe = struct.unpack_from("<I", data, 0x3c)[0]
+                assert data[pe:pe + 4] == b"PE\0\0"
+                assert struct.unpack_from("<H", data, pe + 4)[0] == 0x8664
+                assert archive.read("globalPlugins/remotePlusPlus/lib/COPYING.opus")
+                assert archive.read("globalPlugins/remotePlusPlus/lib/README.md")
+                for source in Path("addon/globalPlugins/remotePlusPlus").glob("audio*.py"):
+                    assert archive.read("globalPlugins/remotePlusPlus/" + source.name) == source.read_bytes()
 
     - uses: actions/upload-artifact@v7
       with:
@@ -59,7 +97,7 @@ jobs:
     permissions:
       contents: write
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: download all artifacts
       uses: actions/download-artifact@v8
       with:

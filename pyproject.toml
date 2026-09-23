@@ -41,6 +41,9 @@ dependencies = [
 [project.urls]
 Repository = "https://github.com/cary-rowen/remotePlusPlus"
 
+[tool.uv]
+package = false
+
 [tool.ruff]
 line-length = 110
 
@@ -110,7 +113,7 @@ exclude = [
 # Tell pyright where to load python code from
 extraPaths = [
 	"./addon",
-	"../nvda/source",
+	"../../nvda/source",
 ]
 
 # General config

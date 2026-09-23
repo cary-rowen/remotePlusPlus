@@ -20,6 +20,7 @@ import api
 from gui.message import MessageDialog, DefaultButton, ReturnCode, DialogType
 from gui.guiHelper import alwaysCallAfter, BoxSizerHelper
 from gui.nvdaControls import SelectOnFocusSpinCtrl
+from gui.settingsDialogs import SettingsPanel
 from config.configFlags import RemoteConnectionMode, RemoteServerType
 from _remoteClient.connectionInfo import ConnectionInfo, ConnectionMode
 from _remoteClient import configuration
@@ -29,8 +30,143 @@ if TYPE_CHECKING:
 	from .service import ConnectionManager
 
 from .service import RemoteService
+from .audio import (
+	AUDIO_BUFFER_VALUES,
+	AUDIO_BITRATES,
+	AUDIO_CHANNELS,
+	AUDIO_FRAME_VALUES,
+	AUDIO_SOURCE_VOICE,
+	AUDIO_SOURCE_SYSTEM,
+	AudioSettings,
+)
 
 addonHandler.initTranslation()
+
+
+class RemotePlusPlusSettingsPanel(SettingsPanel):
+	"""Global listener preferences, using NVDA's Apply/OK/Cancel lifecycle."""
+
+	# Translators: The Remote++ category in NVDA settings.
+	title = _("Remote++")
+	service: RemoteService | None = None
+
+	def makeSettings(self, sizer: wx.BoxSizer) -> None:
+		helper = BoxSizerHelper(self, sizer=sizer)
+		settings = self.service.connection_manager.getAudioSettings() if self.service else AudioSettings()
+		voiceSettings = (
+			self.service.connection_manager.getVoiceAudioSettings() if self.service else AudioSettings()
+		)
+		helper.addItem(wx.StaticText(self, label=_("System audio")))
+		self.systemBufferChoice = helper.addLabeledControl(
+			# Translators: How much remote audio to buffer before playback.
+			_("Playback &buffer:"),
+			wx.Choice,
+			choices=[
+				# Translators: Default playback mode, with no deliberate prebuffering.
+				_("Minimum buffering (default)"),
+				# Translators: A playback buffer duration in milliseconds.
+				*[_("{milliseconds} ms").format(milliseconds=ms) for ms in AUDIO_BUFFER_VALUES[1:]],
+			],
+		)
+		self.systemBufferChoice.SetSelection(AUDIO_BUFFER_VALUES.index(settings.bufferMs))
+		self.systemBitrateChoice = helper.addLabeledControl(
+			_("Audio bit&rate:"),
+			wx.Choice,
+			choices=[
+				_("64 kbps"),
+				_("96 kbps (default)"),
+				_("192 kbps"),
+			],
+		)
+		self.systemBitrateChoice.SetSelection(AUDIO_BITRATES.index(settings.bitrateKbps))
+		self.systemChannelsChoice = helper.addLabeledControl(
+			_("Audio &channels:"),
+			wx.Choice,
+			choices=[_("Mono"), _("Stereo (default)")],
+		)
+		self.systemChannelsChoice.SetSelection(AUDIO_CHANNELS.index(settings.channels))
+		self.systemFrameChoice = helper.addLabeledControl(
+			_("&Transmission mode:"),
+			wx.Choice,
+			choices=[_("Low latency: 10 ms per packet (default)"), _("Balanced: 20 ms per packet")],
+		)
+		self.systemFrameChoice.SetSelection(AUDIO_FRAME_VALUES.index(settings.frameMs))
+		# Keep the original control names available to existing NVDA panel tests.
+		self.bufferChoice = self.systemBufferChoice
+		self.bitrateChoice = self.systemBitrateChoice
+		self.channelsChoice = self.systemChannelsChoice
+		self.frameChoice = self.systemFrameChoice
+		helper.addItem(wx.StaticText(self, label=_("Voice call")))
+		self.voiceBufferChoice = helper.addLabeledControl(
+			_("Playback &buffer:"),
+			wx.Choice,
+			choices=[
+				_("Minimum buffering (default)"),
+				*[_("{milliseconds} ms").format(milliseconds=ms) for ms in AUDIO_BUFFER_VALUES[1:]],
+			],
+		)
+		self.voiceBufferChoice.SetSelection(AUDIO_BUFFER_VALUES.index(voiceSettings.bufferMs))
+		self.voiceBitrateChoice = helper.addLabeledControl(
+			_("Audio bit&rate:"),
+			wx.Choice,
+			choices=[
+				_("64 kbps"),
+				_("96 kbps (default)"),
+				_("192 kbps"),
+			],
+		)
+		self.voiceBitrateChoice.SetSelection(AUDIO_BITRATES.index(voiceSettings.bitrateKbps))
+		self.voiceChannelsChoice = helper.addLabeledControl(
+			_("Audio &channels:"),
+			wx.Choice,
+			choices=[_("Mono"), _("Stereo (default)")],
+		)
+		self.voiceChannelsChoice.SetSelection(AUDIO_CHANNELS.index(voiceSettings.channels))
+		self.voiceFrameChoice = helper.addLabeledControl(
+			_("&Transmission mode:"),
+			wx.Choice,
+			choices=[
+				_("Low latency: 10 ms per packet (default)"),
+				_("Balanced: 20 ms per packet"),
+			],
+		)
+		self.voiceFrameChoice.SetSelection(AUDIO_FRAME_VALUES.index(voiceSettings.frameMs))
+		description = wx.StaticText(
+			self,
+			# Translators: Explanation below the remote audio preferences.
+			label=_(
+				"Audio uses Opus at 48 kHz. Lower bitrate uses less bandwidth. Balanced mode reduces packet "
+				"overhead but adds delay. More buffering can reduce interruptions but delays playback; "
+				"minimum buffering does not mean zero latency. "
+				"Apply changes to restart active listening; audio stays off if it is not already enabled.",
+			),
+		)
+		description.Wrap(self.scaleSize(500))
+		helper.addItem(description)
+
+	def onSave(self) -> None:
+		if self.service is None:
+			return
+		settings = AudioSettings(
+			AUDIO_BUFFER_VALUES[self.systemBufferChoice.GetSelection()],
+			AUDIO_BITRATES[self.systemBitrateChoice.GetSelection()],
+			AUDIO_CHANNELS[self.systemChannelsChoice.GetSelection()],
+			AUDIO_FRAME_VALUES[self.systemFrameChoice.GetSelection()],
+		)
+		voiceSettings = AudioSettings(
+			AUDIO_BUFFER_VALUES[self.voiceBufferChoice.GetSelection()],
+			AUDIO_BITRATES[self.voiceBitrateChoice.GetSelection()],
+			AUDIO_CHANNELS[self.voiceChannelsChoice.GetSelection()],
+			AUDIO_FRAME_VALUES[self.voiceFrameChoice.GetSelection()],
+		)
+		manager = self.service.connection_manager
+		if settings == manager.getAudioSettings() and voiceSettings == manager.getVoiceAudioSettings():
+			return
+		if not manager.setAudioSettings(settings, voiceSettings):
+			# Translators: Settings could not be saved; the current audio continues unchanged.
+			_showError(self, _("Unable to save audio settings. The previous settings are still in use."))
+			return
+		self.service.applyAudioSettings()
 
 
 def generate_key() -> str:
@@ -65,6 +201,8 @@ class MenuHandler:
 		on_swap: Callable[[], None],
 		on_connect_default: Callable[[], None],
 		on_manage: Callable[[], None],
+		on_toggle_system_audio: Callable[[], None],
+		on_toggle_voice_call: Callable[[], None],
 	) -> None:
 		"""Initialize the menu handler.
 
@@ -77,10 +215,14 @@ class MenuHandler:
 		self.on_swap = on_swap
 		self.on_connect_default = on_connect_default
 		self.on_manage = on_manage
+		self.on_toggle_system_audio = on_toggle_system_audio
+		self.on_toggle_voice_call = on_toggle_voice_call
 		self._menuSep: wx.MenuItem | None = None
 		self._manageItem: wx.MenuItem | None = None
 		self._swapItem: wx.MenuItem | None = None
 		self._connectDefaultItem: wx.MenuItem | None = None
+		self._systemAudioItem: wx.MenuItem | None = None
+		self._voiceCallItem: wx.MenuItem | None = None
 		self._orig_handleConnected: Callable[[ConnectionMode, bool], None] | None = None
 
 	@alwaysCallAfter
@@ -90,7 +232,7 @@ class MenuHandler:
 			return
 
 		client = self.service.getClient()
-		if not client or not getattr(client, "menu", None):
+		if not client or not client.menu:
 			return
 
 		menu = client.menu
@@ -98,6 +240,14 @@ class MenuHandler:
 		if not self._orig_handleConnected:
 			self._orig_handleConnected = menu.handleConnected
 			menu.handleConnected = self._handleMenuConnected
+
+		if self._manageItem is not None or self._swapItem is not None or self._menuSep is not None:
+			self._syncConnectDefaultItem(menu)
+			if client.isConnected():
+				self.service.handleRemoteConnectionChanged(True)
+			self._updateMenuState(client.isConnected())
+			return
+
 		self._menuSep = menu.AppendSeparator()
 
 		# Translators: Menu item to open Remote Connection Manager dialog.
@@ -108,27 +258,75 @@ class MenuHandler:
 		self._swapItem = menu.Append(wx.ID_ANY, _("S&wap Control Mode"))
 		menu.Bind(wx.EVT_MENU, lambda evt: self.on_swap(), self._swapItem)
 
+		self._syncConnectDefaultItem(menu)
+		# Translators: Menu item to listen to the controlled computer's system audio.
+		self._systemAudioItem = menu.AppendCheckItem(
+			wx.ID_ANY,
+			_("Listen to remote system sounds"),
+		)
+		menu.Bind(wx.EVT_MENU, lambda evt: self.on_toggle_system_audio(), self._systemAudioItem)
+		# Translators: Menu item to start a bidirectional voice call.
+		self._voiceCallItem = menu.AppendCheckItem(
+			wx.ID_ANY,
+			_("Voice call"),
+		)
+		menu.Bind(wx.EVT_MENU, lambda evt: self.on_toggle_voice_call(), self._voiceCallItem)
+		if client.isConnected():
+			self.service.handleRemoteConnectionChanged(True)
+		self._updateMenuState(client.isConnected())
+
+	@alwaysCallAfter
+	def refresh(self) -> None:
+		"""Refresh injected menu items to match current configuration and connection state."""
+		if not self.service.isRunning():
+			return
+
+		client = self.service.getClient()
+		if not client or not client.menu:
+			return
+
+		if self._manageItem is None and self._swapItem is None and self._menuSep is None:
+			return
+
+		self._syncConnectDefaultItem(client.menu)
+		self._updateMenuState(client.isConnected())
+
+	def _syncConnectDefaultItem(self, menu: wx.Menu) -> None:
+		"""Add or remove the default-server menu item based on current configuration."""
 		if self.service.isAutoConnectConfigured():
+			if self._connectDefaultItem is not None:
+				return
 			# Translators: Menu item to connect to the default configured server.
 			self._connectDefaultItem = menu.Append(wx.ID_ANY, _("Connect &to Default Server"))
 			menu.Bind(wx.EVT_MENU, lambda evt: self.on_connect_default(), self._connectDefaultItem)
-
-		self._updateMenuState(client.isConnected())
+		elif self._connectDefaultItem is not None:
+			try:
+				menu.Remove(self._connectDefaultItem.Id)
+			except RuntimeError:
+				pass
+			self._connectDefaultItem = None
 
 	@alwaysCallAfter
 	def remove(self) -> None:
 		"""Remove injected menu items and restore hooks."""
 		if self._orig_handleConnected and self.service.isRunning():
 			client = self.service.getClient()
-			if client and getattr(client, "menu", None):
+			if client and client.menu:
 				client.menu.handleConnected = self._orig_handleConnected
 		self._orig_handleConnected = None
 
 		if self.service.isRunning():
 			client = self.service.getClient()
-			if client and getattr(client, "menu", None):
+			if client and client.menu:
 				menu = client.menu
-				for item in (self._manageItem, self._swapItem, self._connectDefaultItem, self._menuSep):
+				for item in (
+					self._manageItem,
+					self._swapItem,
+					self._connectDefaultItem,
+					self._systemAudioItem,
+					self._voiceCallItem,
+					self._menuSep,
+				):
 					if item is not None:
 						try:
 							menu.Remove(item.Id)
@@ -138,6 +336,8 @@ class MenuHandler:
 		self._manageItem = None
 		self._swapItem = None
 		self._connectDefaultItem = None
+		self._systemAudioItem = None
+		self._voiceCallItem = None
 		self._menuSep = None
 
 	def _handleMenuConnected(self, mode: ConnectionMode, connected: bool) -> None:
@@ -148,6 +348,7 @@ class MenuHandler:
 		"""
 		if self._orig_handleConnected:
 			self._orig_handleConnected(mode, connected)
+		self.service.handleRemoteConnectionChanged(connected)
 		self._updateMenuState(connected)
 
 	def _updateMenuState(self, connected: bool) -> None:
@@ -164,22 +365,26 @@ class MenuHandler:
 			if connected and self.service.isCurrentConnectionDefault():
 				shouldEnable = False
 			self._connectDefaultItem.Enable(shouldEnable)
+		if self._systemAudioItem and self._voiceCallItem:
+			isLeader = self.service.isAudioLeader()
+			available = connected and isLeader and not self.service.isAudioRequestPending()
+			sources = self.service.getAudioSources()
+			self._systemAudioItem.Enable(available)
+			self._voiceCallItem.Enable(available)
+			self._systemAudioItem.Check(bool(sources & AUDIO_SOURCE_SYSTEM))
+			self._voiceCallItem.Check(bool(sources & AUDIO_SOURCE_VOICE))
 
 
-def show_swap_confirmation_dialog() -> bool:
-	"""Show confirmation dialog for swapping control mode.
+def create_disconnect_confirmation_dialog() -> MessageDialog:
+	"""Create confirmation dialog for disconnecting before swapping control mode.
 
-	:return: True if the user confirmed, False otherwise.
+	:return: The confirmation dialog.
 	"""
-	if MessageDialog.blockingInstancesExist():
-		MessageDialog.focusBlockingInstances()
-		return False
-
 	confirmationButtons = (
 		DefaultButton.YES,
 		DefaultButton.NO.value._replace(defaultFocus=True, fallbackAction=True),
 	)
-	dialog = MessageDialog(
+	return MessageDialog(
 		parent=gui.mainFrame,
 		# Translators: Title of the dialog confirming disconnection when swapping Remote Access modes.
 		title=pgettext("remote", "Confirm Disconnection"),
@@ -191,24 +396,19 @@ def show_swap_confirmation_dialog() -> bool:
 		dialogType=DialogType.WARNING,
 		buttons=confirmationButtons,
 	)
-	return dialog.ShowModal() == ReturnCode.YES
 
 
-def show_switch_to_default_dialog(service: RemoteService) -> bool:
-	"""Show confirmation dialog to switch to default server.
+def create_switch_to_default_dialog(service: RemoteService) -> MessageDialog | None:
+	"""Create confirmation dialog to switch to default server.
 
 	:param service: The RemoteService instance to get connection info from.
-	:return: True if the user confirmed, False otherwise.
+	:return: The confirmation dialog, or None when required connection information is unavailable.
 	"""
-	if MessageDialog.blockingInstancesExist():
-		MessageDialog.focusBlockingInstances()
-		return False
-
 	conf = service.getControlServerConfig()
 	currentInfo = service.getCurrentConnectionInfo()
 
 	if not conf or not currentInfo:
-		return False
+		return None
 
 	targetMode = RemoteConnectionMode(conf["connectionMode"])
 	# Translators: Display text for a locally hosted server in connection dialogs.
@@ -237,7 +437,7 @@ def show_switch_to_default_dialog(service: RemoteService) -> bool:
 	)
 
 	confirmationButtons = (DefaultButton.YES, DefaultButton.NO)
-	dialog = MessageDialog(
+	return MessageDialog(
 		parent=gui.mainFrame,
 		# Translators: Title of the dialog for switching to default connection server.
 		title=_("Switch to Default Connection"),
@@ -245,8 +445,6 @@ def show_switch_to_default_dialog(service: RemoteService) -> bool:
 		dialogType=DialogType.STANDARD,
 		buttons=confirmationButtons,
 	)
-
-	return dialog.ShowModal() == ReturnCode.YES
 
 
 class ConnectionEditorDialog(wx.Dialog):
@@ -478,17 +676,19 @@ class GroupManagerDialog(wx.Dialog):
 
 	def on_add(self, evt: wx.CommandEvent) -> None:
 		# Translators: Prompt for entering a new group name.
-		name = wx.GetTextFromUser(_("Enter new group name:"), _("New Group"), parent=self)
-		if name:
-			if self.manager.createGroup(name):
-				self.refresh_list()
-				idx = self.list.FindString(name)
-				if idx != wx.NOT_FOUND:
-					self.list.SetSelection(idx)
-					self.on_selection_change(None)
-			else:
-				# Translators: Error when a group with the same name already exists.
-				_showError(self, _("Group already exists or invalid."))
+		name = wx.GetTextFromUser(_("Enter new group name:"), _("New Group"), parent=self).strip()
+		if not name:
+			return
+
+		if self.manager.createGroup(name):
+			self.refresh_list()
+			idx = self.list.FindString(name)
+			if idx != wx.NOT_FOUND:
+				self.list.SetSelection(idx)
+				self.on_selection_change(None)
+		else:
+			# Translators: Error when a group with the same name already exists.
+			_showError(self, _("Group already exists or invalid."))
 
 	def on_rename(self, evt: wx.CommandEvent) -> None:
 		selections = self.list.GetSelections()
@@ -504,13 +704,16 @@ class GroupManagerDialog(wx.Dialog):
 			_("Rename Group"),
 			default_value=old_name,
 			parent=self,
-		)
-		if new_name and new_name != old_name:
-			if self.manager.renameGroup(old_name, new_name):
-				self.refresh_list()
-			else:
-				# Translators: Error when trying to rename to an existing group name.
-				_showError(self, _("Group name already exists."))
+		).strip()
+		if not new_name:
+			return
+		if new_name == old_name:
+			return
+		if self.manager.renameGroup(old_name, new_name):
+			self.refresh_list()
+		else:
+			# Translators: Error when trying to rename to an existing group name.
+			_showError(self, _("Group name already exists."))
 
 	def on_delete(self, evt: wx.CommandEvent) -> None:
 		selections = self.list.GetSelections()
@@ -549,10 +752,15 @@ class GroupManagerDialog(wx.Dialog):
 class ConnectionManagerDialog(wx.Dialog):
 	"""Main dialog for Remote Connection Manager."""
 
-	def __init__(self, service: RemoteService) -> None:
+	def __init__(
+		self,
+		service: RemoteService,
+		on_auto_connect_changed: Callable[[], None] | None = None,
+	) -> None:
 		super().__init__(gui.mainFrame, title=_("Remote Connection Manager"), size=(700, 450))
 		self.service = service
 		self.manager = service.connection_manager
+		self.on_auto_connect_changed = on_auto_connect_changed
 		self._current_connections_view: list[dict[str, Any]] = []
 		self._init_gui()
 		self.Center()
@@ -727,20 +935,11 @@ class ConnectionManagerDialog(wx.Dialog):
 			self.list.SetColumnWidth(col, max(header_width, content_width))
 
 	def on_selection_change(self, evt: wx.ListEvent | None) -> None:
-		count = self._getSelectedCount()
+		count = self.list.GetSelectedItemCount()
 		has_single = count == 1
 		has_any = count > 0
 		self.editBtn.Enable(has_single)
 		self.delBtn.Enable(has_any)
-
-	def _getSelectedCount(self) -> int:
-		"""Return the number of selected items."""
-		count = 0
-		idx = self.list.GetFirstSelected()
-		while idx != -1:
-			count += 1
-			idx = self.list.GetNextSelected(idx)
-		return count
 
 	def _getSelectedIndices(self) -> list[int]:
 		"""Return list of all selected indices."""
@@ -951,9 +1150,11 @@ class ConnectionManagerDialog(wx.Dialog):
 			self.service.setAsAutoConnect(conn)
 			# Translators: Message announced when the connection is set as auto-connect.
 			ui.message(_("Auto-connect configuration saved"))
+			if self.on_auto_connect_changed:
+				self.on_auto_connect_changed()
 
 	def on_context_menu(self, evt: wx.CommandEvent | wx.ListEvent) -> None:
-		count = self._getSelectedCount()
+		count = self.list.GetSelectedItemCount()
 		if count == 0:
 			return
 
@@ -1025,7 +1226,7 @@ class ConnectionManagerDialog(wx.Dialog):
 					self.list.Select(i)
 				return
 			if keyCode == ord("C"):
-				if self._getSelectedCount() == 1:
+				if self.list.GetSelectedItemCount() == 1:
 					self.on_copy_link(None)
 				return
 
@@ -1050,7 +1251,7 @@ class ConnectionManagerDialog(wx.Dialog):
 
 	def _moveSelected(self, direction: int) -> None:
 		"""Move the selected connection by direction (-1=up, 1=down)."""
-		if self._getSelectedCount() != 1:
+		if self.list.GetSelectedItemCount() != 1:
 			return
 
 		conn = self.get_selected_connection()
@@ -1059,5 +1260,11 @@ class ConnectionManagerDialog(wx.Dialog):
 
 		conn_id = conn["id"]
 		group = self.groupCombo.GetStringSelection()
-		if self.manager.moveConnection(group, conn_id, direction):
+		currentIdx = next((i for i, c in enumerate(self._current_connections_view) if c["id"] == conn_id), -1)
+		targetIdx = currentIdx + direction
+		if not (0 <= currentIdx and 0 <= targetIdx < len(self._current_connections_view)):
+			return
+
+		targetConnId = self._current_connections_view[targetIdx]["id"]
+		if self.manager.swapConnections(group, conn_id, targetConnId):
 			self.refresh_list(selected_id=conn_id)

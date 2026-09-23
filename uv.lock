@@ -288,7 +288,7 @@ wheels = [
 
 [[package]]
 name = "remoteplusplus"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "crowdin-api-client" },
     { name = "lxml" },

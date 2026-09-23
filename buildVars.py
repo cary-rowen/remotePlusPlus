@@ -23,13 +23,19 @@ addon_info = AddonInfo(
 	# Translators: Long description to be shown for this add-on on add-on information from add-on store
 	addon_description=_("""Enhances NVDA Remote with productivity features for power users."""),
 	# version
-	addon_version="0.4.1",
+	addon_version="1.0.0",
 	# Brief changelog for this version
 	# Translators: what's new content for the add-on version to be shown in the add-on store
-	addon_changelog=_("""## 0.4.1
+	addon_changelog=_("""## 1.0.0
 
-* L10n update.
-* Compatible with NVDA 2026.1."""),
+- Raise the minimum supported NVDA version to 2026.1.
+- Add low-latency audio relay for listening to the controlled computer's system sounds and making bidirectional voice calls. This requires [NVDARemoteAudioServer](https://github.com/haitun001/NVDARemoteAudioServer) to be deployed on the host running the Remote Access server with TCP and UDP port 6838 exposed; Remote++ reuses the server address and key from the current Remote connection.
+- Add separate playback buffer, bitrate, channel, and transmission mode settings for system audio and voice calls in NVDA Settings → Remote++.
+- Add "Listen to remote system sounds" and "Voice call" to the Remote Access menu.
+- Pause the controlled computer's normal NVDA Remote speech feedback while remote system sound listening is enabled to avoid duplicate speech.
+- Require an audio-capable Remote++ version on both computers; older versions continue to support normal Remote control.
+- Add Turkish translation.
+"""),
 	# Author(s)
 	addon_author="Cary-rowen <manchen_0528@outlook.com>",
 	# URL for the add-on documentation support
@@ -39,7 +45,7 @@ addon_info = AddonInfo(
 	# Documentation file name
 	addon_docFileName="readme.html",
 	# Minimum NVDA version supported (e.g. "2019.3.0", minor version is optional)
-	addon_minimumNVDAVersion="2025.1.0",
+	addon_minimumNVDAVersion="2026.1.0",
 	# Last NVDA version supported/tested (e.g. "2024.4.0", ideally more recent than minimum version)
 	addon_lastTestedNVDAVersion="2026.1.0",
 	# Add-on update channel (default is None, denoting stable releases,
@@ -69,7 +75,7 @@ i18nSources: list[str] = pythonSources + ["buildVars.py"]
 # Paths are relative to the addon directory, not to the root directory of your addon sources.
 # You can either list every file (using ""/") as a path separator,
 # or use glob expressions.
-excludedFiles: list[str] = []
+excludedFiles: list[str] = ["**/__pycache__/**", "**/*.pyc"]
 
 # Base language for the NVDA add-on
 # If your add-on is written in a language other than english, modify this variable.
