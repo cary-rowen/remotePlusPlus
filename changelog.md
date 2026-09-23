@@ -1,14 +1,9 @@
-## 0.5.0
+## 1.0.0
 
-- Require NVDA 2026.1 or later.
-- Add global playback buffer and transmission quality preferences in NVDA Settings → Remote++,
-  with explicit default labels, live audio reconfiguration and legacy quality fallback.
-
-- Prevent duplicate Remote++ items in the Remote Access menu.
-- Show "Connect to Default Server" as soon as an auto-connect connection is set.
-- Improve group handling and reordering in filtered connection lists.
-- Improve dialog focus handling and local server detection.
-- Add optional low-latency audio relay through NVDARemoteAudioServer.
-- Add separate menu toggles for remote system sounds and bidirectional voice calls. The
-  current Remote host is reused with the fixed audio port 6838; no audio
-  shortcut or per-connection audio settings are added.
+- Raise the minimum supported NVDA version to 2026.1.
+- Add low-latency audio relay for listening to the controlled computer's system sounds and making bidirectional voice calls. This requires [NVDARemoteAudioServer](https://github.com/haitun001/NVDARemoteAudioServer) to be deployed on the host running the Remote Access server with TCP and UDP port 6838 exposed; Remote++ reuses the server address and key from the current Remote connection.
+- Add separate playback buffer, bitrate, channel, and transmission mode settings for system audio and voice calls in NVDA Settings → Remote++.
+- Add "Listen to remote system sounds" and "Voice call" to the Remote Access menu.
+- Pause the controlled computer's normal NVDA Remote speech feedback while remote system sound listening is enabled to avoid duplicate speech.
+- Require an audio-capable Remote++ version on both computers; older versions continue to support normal Remote control.
+- Add Turkish translation.
