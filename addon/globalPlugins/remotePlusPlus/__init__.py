@@ -237,6 +237,20 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def script_connectToDefault(self, gesture: inputCore.InputGesture) -> None:
 		self._performConnectToDefault()
 
+	@script(
+		description=_("Listen to remote system sounds"),
+		category=pgettext("remote", "Remote Access"),
+	)
+	def script_toggleSystemAudio(self, gesture: inputCore.InputGesture) -> None:
+		self._performToggleSystemAudio()
+
+	@script(
+		description=_("Voice call"),
+		category=pgettext("remote", "Remote Access"),
+	)
+	def script_toggleVoiceCall(self, gesture: inputCore.InputGesture) -> None:
+		self._performToggleVoiceCall()
+
 	@alwaysCallAfter
 	def _performToggleSystemAudio(self) -> None:
 		self._performToggleAudioSource(AUDIO_SOURCE_SYSTEM)
