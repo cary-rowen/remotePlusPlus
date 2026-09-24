@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 'remotePlusPlus' '0.3.0'\n"
 "Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
-"POT-Creation-Date: 2026-09-21 19:41+0800\n"
+"POT-Creation-Date: 2026-09-24 07:29+0800\n"
 "PO-Revision-Date: 2026-01-18 16:37+0800\n"
 "Last-Translator: 完美很难 <1872265132@qq.com>\n"
 "Language-Team: \n"
@@ -19,78 +19,78 @@ msgstr ""
 "X-Generator: Poedit 3.8\n"
 
 #. Translators: The audio audio worker rejected its connection or audio settings.
-#: addon\globalPlugins\remotePlusPlus\audio.py:101
-#: addon\globalPlugins\remotePlusPlus\audio.py:289
-#: addon\globalPlugins\remotePlusPlus\audio.py:296
+#: addon\globalPlugins\remotePlusPlus\audio.py:121
+#: addon\globalPlugins\remotePlusPlus\audio.py:405
+#: addon\globalPlugins\remotePlusPlus\audio.py:416
 msgid "Audio connection settings are invalid."
 msgstr "音频连接设置无效。"
 
 #. Translators: Connecting to or communicating with the audio server failed.
-#: addon\globalPlugins\remotePlusPlus\audio.py:104
+#: addon\globalPlugins\remotePlusPlus\audio.py:124
 msgid ""
 "Unable to communicate with the audio server. Check the server and connection "
 "key."
 msgstr "无法与音频服务器通信。请检查服务器和连接密钥。"
 
 #. Translators: The audio server did not accept the UDP audio connection.
-#: addon\globalPlugins\remotePlusPlus\audio.py:108
+#: addon\globalPlugins\remotePlusPlus\audio.py:128
 msgid ""
 "Unable to establish UDP audio transport. Check the audio server and firewall."
 msgstr "无法建立 UDP 音频连接。请检查音频服务器和防火墙。"
 
 #. Translators: No default microphone is available on the computer capturing audio.
-#: addon\globalPlugins\remotePlusPlus\audio.py:111
+#: addon\globalPlugins\remotePlusPlus\audio.py:131
 msgid "No default microphone is available."
 msgstr "没有可用的默认麦克风。"
 
 #. Translators: No default output device is available for playback or system audio capture.
-#: addon\globalPlugins\remotePlusPlus\audio.py:113
+#: addon\globalPlugins\remotePlusPlus\audio.py:133
 msgid "No default audio output device is available."
 msgstr "没有可用的默认音频输出设备。"
 
 #. Translators: An audio device could not be opened or stopped working.
-#: addon\globalPlugins\remotePlusPlus\audio.py:115
+#: addon\globalPlugins\remotePlusPlus\audio.py:135
 msgid "The audio device is unavailable or stopped working."
 msgstr "音频设备不可用或已停止工作。"
 
 #. Translators: Sending or receiving audio data failed.
-#: addon\globalPlugins\remotePlusPlus\audio.py:117
+#: addon\globalPlugins\remotePlusPlus\audio.py:137
 msgid "The audio connection failed."
 msgstr "音频连接失败。"
 
-#: addon\globalPlugins\remotePlusPlus\audio.py:120
+#: addon\globalPlugins\remotePlusPlus\audio.py:140
 msgid ""
 "The Opus audio codec is unavailable or failed. Reinstall Remote++ on both "
 "computers."
 msgstr "Opus 音频编解码器不可用或运行失败。请在两台计算机上重新安装 Remote++。"
 
 #. Translators: The controlled computer stopped sharing audio, for example when reloading add-ons.
-#: addon\globalPlugins\remotePlusPlus\audio.py:123
+#: addon\globalPlugins\remotePlusPlus\audio.py:143
 msgid "Audio sharing stopped on the controlled computer."
 msgstr "被控计算机已停止音频共享。"
 
 #. Translators: Fallback for an unknown error from the audio component.
-#: addon\globalPlugins\remotePlusPlus\audio.py:126
-#: addon\globalPlugins\remotePlusPlus\audio.py:311
-#: addon\globalPlugins\remotePlusPlus\audio.py:343
-#: addon\globalPlugins\remotePlusPlus\audio.py:409
-#: addon\globalPlugins\remotePlusPlus\service.py:656
+#: addon\globalPlugins\remotePlusPlus\audio.py:146
+#: addon\globalPlugins\remotePlusPlus\audio.py:444
+#: addon\globalPlugins\remotePlusPlus\audio.py:495
+#: addon\globalPlugins\remotePlusPlus\audio.py:583
+#: addon\globalPlugins\remotePlusPlus\service.py:705
 msgid "Audio component failed."
 msgstr "音频组件运行失败。"
 
-#: addon\globalPlugins\remotePlusPlus\audio.py:286
+#: addon\globalPlugins\remotePlusPlus\audio.py:402
 msgid "Audio server host is unavailable."
 msgstr "音频服务器地址不可用。"
 
-#: addon\globalPlugins\remotePlusPlus\audio.py:293
+#: addon\globalPlugins\remotePlusPlus\audio.py:410
 msgid "Audio source selection is invalid."
 msgstr "音频源选择无效。"
 
-#: addon\globalPlugins\remotePlusPlus\audio.py:300
+#: addon\globalPlugins\remotePlusPlus\audio.py:419
 msgid "No audio source is enabled."
 msgstr "未启用音频源。"
 
-#: addon\globalPlugins\remotePlusPlus\audio.py:424
+#: addon\globalPlugins\remotePlusPlus\audio.py:609
 msgid "Audio component stopped unexpectedly."
 msgstr "音频组件意外停止。"
 
@@ -98,68 +98,89 @@ msgstr "音频组件意外停止。"
 #. Add-on summary/title, usually the user visible name of the add-on
 #. Translators: Summary/title for this add-on
 #. to be shown on installation and add-on information found in add-on store
-#: addon\globalPlugins\remotePlusPlus\interface.py:50 buildVars.py:21
+#: addon\globalPlugins\remotePlusPlus\interface.py:50 buildVars.py:20
 msgid "Remote++"
 msgstr "Remote++"
 
+#: addon\globalPlugins\remotePlusPlus\interface.py:59
+msgid "System audio"
+msgstr "系统声音"
+
 #. Translators: How much remote audio to buffer before playback.
-#: addon\globalPlugins\remotePlusPlus\interface.py:58
+#: addon\globalPlugins\remotePlusPlus\interface.py:62
+#: addon\globalPlugins\remotePlusPlus\interface.py:101
 msgid "Playback &buffer:"
 msgstr "播放缓冲(&B)："
 
 #. Translators: Default playback mode, with no deliberate prebuffering.
-#: addon\globalPlugins\remotePlusPlus\interface.py:62
+#: addon\globalPlugins\remotePlusPlus\interface.py:66
+#: addon\globalPlugins\remotePlusPlus\interface.py:104
 msgid "Minimum buffering (default)"
 msgstr "最小缓冲（默认）"
 
 #. Translators: A playback buffer duration in milliseconds.
-#: addon\globalPlugins\remotePlusPlus\interface.py:64
+#: addon\globalPlugins\remotePlusPlus\interface.py:68
+#: addon\globalPlugins\remotePlusPlus\interface.py:105
 #, python-brace-format
 msgid "{milliseconds} ms"
 msgstr "{milliseconds} 毫秒"
 
-#. Translators: Total Opus bitrate, shared by both channels and audio sources.
-#: addon\globalPlugins\remotePlusPlus\interface.py:70
+#: addon\globalPlugins\remotePlusPlus\interface.py:73
+#: addon\globalPlugins\remotePlusPlus\interface.py:110
 msgid "Audio bit&rate:"
 msgstr "音频比特率(&R)："
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:73
+#: addon\globalPlugins\remotePlusPlus\interface.py:76
+#: addon\globalPlugins\remotePlusPlus\interface.py:113
 msgid "64 kbps"
 msgstr "64 kbps"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:74
+#: addon\globalPlugins\remotePlusPlus\interface.py:77
+#: addon\globalPlugins\remotePlusPlus\interface.py:114
 msgid "96 kbps (default)"
 msgstr "96 kbps（默认）"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:75
+#: addon\globalPlugins\remotePlusPlus\interface.py:78
+#: addon\globalPlugins\remotePlusPlus\interface.py:115
 msgid "192 kbps"
 msgstr "192 kbps"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:80
+#: addon\globalPlugins\remotePlusPlus\interface.py:83
+#: addon\globalPlugins\remotePlusPlus\interface.py:120
 msgid "Audio &channels:"
 msgstr "音频声道(&C)："
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:82
+#: addon\globalPlugins\remotePlusPlus\interface.py:85
+#: addon\globalPlugins\remotePlusPlus\interface.py:122
 msgid "Mono"
 msgstr "单声道"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:82
+#: addon\globalPlugins\remotePlusPlus\interface.py:85
+#: addon\globalPlugins\remotePlusPlus\interface.py:122
 msgid "Stereo (default)"
 msgstr "立体声（默认）"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:86
+#: addon\globalPlugins\remotePlusPlus\interface.py:89
+#: addon\globalPlugins\remotePlusPlus\interface.py:126
 msgid "&Transmission mode:"
 msgstr "传输模式(&T)："
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:88
+#: addon\globalPlugins\remotePlusPlus\interface.py:91
+#: addon\globalPlugins\remotePlusPlus\interface.py:129
 msgid "Low latency: 10 ms per packet (default)"
 msgstr "低延迟：每包 10 毫秒（默认）"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:88
+#: addon\globalPlugins\remotePlusPlus\interface.py:91
+#: addon\globalPlugins\remotePlusPlus\interface.py:130
 msgid "Balanced: 20 ms per packet"
 msgstr "均衡：每包 20 毫秒"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:95
+#: addon\globalPlugins\remotePlusPlus\interface.py:99
+#: addon\globalPlugins\remotePlusPlus\interface.py:271
+msgid "Voice call"
+msgstr "语音通话"
+
+#: addon\globalPlugins\remotePlusPlus\interface.py:138
 msgid ""
 "Audio uses Opus at 48 kHz. Lower bitrate uses less bandwidth. Balanced mode "
 "reduces packet overhead but adds delay. More buffering can reduce "
@@ -167,64 +188,60 @@ msgid ""
 "latency. Apply changes to restart active listening; audio stays off if it is "
 "not already enabled."
 msgstr ""
-"音频采用 48 kHz Opus 编码。降低比特率可减少带宽占用。均衡模式可减少数据包开销，"
-"但会增加延迟。增加缓冲可减少断续，但会延后播放；最小缓冲不代表零延迟。应用更改会"
-"重启正在收听的音频；未开启音频时只保存设置。"
+"音频采用 48 kHz Opus 编码。降低比特率可减少带宽占用。均衡模式可减少数据包开"
+"销，但会增加延迟。增加缓冲可减少断续，但会延后播放；最小缓冲不代表零延迟。应"
+"用更改会重启正在收听的音频；未开启音频时只保存设置。"
 
 #. Translators: Settings could not be saved; the current audio continues unchanged.
-#: addon\globalPlugins\remotePlusPlus\interface.py:117
+#: addon\globalPlugins\remotePlusPlus\interface.py:167
 msgid "Unable to save audio settings. The previous settings are still in use."
 msgstr "无法保存音频设置，仍使用此前的设置。"
 
 #. Translators: Title of an error dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:140
+#: addon\globalPlugins\remotePlusPlus\interface.py:190
 msgid "Error"
 msgstr "错误"
 
 #. Translators: Menu item to open Remote Connection Manager dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:204
+#: addon\globalPlugins\remotePlusPlus\interface.py:254
 msgid "Connection Ma&nager..."
 msgstr "连接管理器(&N)..."
 
 #. Translators: Menu item to swap NVDA Remote control modes (between leader and follower).
-#: addon\globalPlugins\remotePlusPlus\interface.py:208
+#: addon\globalPlugins\remotePlusPlus\interface.py:258
 msgid "S&wap Control Mode"
 msgstr "交换控制模式(&W)"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:215
+#: addon\globalPlugins\remotePlusPlus\interface.py:265
 msgid "Listen to remote system sounds"
 msgstr "收听远程系统声音"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:221
-msgid "Listen to remote microphone"
-msgstr "收听远程麦克风"
-
 #. Translators: Menu item to connect to the default configured server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:250
+#: addon\globalPlugins\remotePlusPlus\interface.py:300
 msgid "Connect &to Default Server"
 msgstr "连接到默认服务器(&T)"
 
 #. Translators: Title of the dialog confirming disconnection when swapping Remote Access modes.
-#: addon\globalPlugins\remotePlusPlus\interface.py:340
+#: addon\globalPlugins\remotePlusPlus\interface.py:390
 msgctxt "remote"
 msgid "Confirm Disconnection"
 msgstr "确认断开连接"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:344
+#: addon\globalPlugins\remotePlusPlus\interface.py:394
 msgctxt "remote"
 msgid "Are you sure you want to disconnect from the Remote Access session?"
 msgstr "您确定要断开远程访问会话的连接吗？"
 
 #. Translators: Display text for a locally hosted server in connection dialogs.
 #. Translators: Display text for a locally hosted server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:365
-#: addon\globalPlugins\remotePlusPlus\interface.py:373
-#: addon\globalPlugins\remotePlusPlus\interface.py:857
-#: addon\globalPlugins\remotePlusPlus\interface.py:1068
+#: addon\globalPlugins\remotePlusPlus\interface.py:415
+#: addon\globalPlugins\remotePlusPlus\interface.py:423
+#: addon\globalPlugins\remotePlusPlus\interface.py:907
+#: addon\globalPlugins\remotePlusPlus\interface.py:1118
 msgid "Local Server"
 msgstr "本地服务器"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:379
+#: addon\globalPlugins\remotePlusPlus\interface.py:429
 #, python-brace-format
 msgid ""
 "Connect to default server: {targetHost} ({targetMode})\n"
@@ -240,227 +257,227 @@ msgstr ""
 "是否继续？"
 
 #. Translators: Title of the dialog for switching to default connection server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:393
+#: addon\globalPlugins\remotePlusPlus\interface.py:443
 msgid "Switch to Default Connection"
 msgstr "切换到默认连接"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:416
+#: addon\globalPlugins\remotePlusPlus\interface.py:466
 msgid "&Name:"
 msgstr "名称(&N)："
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:423
+#: addon\globalPlugins\remotePlusPlus\interface.py:473
 msgctxt "remote"
 msgid "&Server:"
 msgstr "服务器(&S)"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:440
+#: addon\globalPlugins\remotePlusPlus\interface.py:490
 msgid "&Host:"
 msgstr "主机(&H)"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:448
+#: addon\globalPlugins\remotePlusPlus\interface.py:498
 msgctxt "remote"
 msgid "&Key:"
 msgstr "密钥(&K)："
 
 #. Translators: Button to generate a random connection key.
-#: addon\globalPlugins\remotePlusPlus\interface.py:456
+#: addon\globalPlugins\remotePlusPlus\interface.py:506
 msgid "&Generate Key"
 msgstr "生成秘钥(&G)"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:462
+#: addon\globalPlugins\remotePlusPlus\interface.py:512
 msgid "&Port:"
 msgstr "端口(&P):"
 
 #. Translators: Mode choice for controlling another computer.
 #. Translators: Mode label for controlling another computer.
-#: addon\globalPlugins\remotePlusPlus\interface.py:472
-#: addon\globalPlugins\remotePlusPlus\interface.py:846
-#: addon\globalPlugins\remotePlusPlus\interface.py:1061
+#: addon\globalPlugins\remotePlusPlus\interface.py:522
+#: addon\globalPlugins\remotePlusPlus\interface.py:896
+#: addon\globalPlugins\remotePlusPlus\interface.py:1111
 msgctxt "remote"
 msgid "Controlling another computer"
 msgstr "控制另一台计算机"
 
 #. Translators: Mode choice for allowing this computer to be controlled.
 #. Translators: Mode label for allowing this computer to be controlled.
-#: addon\globalPlugins\remotePlusPlus\interface.py:474
-#: addon\globalPlugins\remotePlusPlus\interface.py:848
-#: addon\globalPlugins\remotePlusPlus\interface.py:1063
+#: addon\globalPlugins\remotePlusPlus\interface.py:524
+#: addon\globalPlugins\remotePlusPlus\interface.py:898
+#: addon\globalPlugins\remotePlusPlus\interface.py:1113
 msgctxt "remote"
 msgid "Allowing this computer to be controlled"
 msgstr "允许此计算机被控制"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:482
+#: addon\globalPlugins\remotePlusPlus\interface.py:532
 msgctxt "remote"
 msgid "&Mode:"
 msgstr "模式(&M)"
 
 #. Translators: Error message when required fields are empty.
-#: addon\globalPlugins\remotePlusPlus\interface.py:524
+#: addon\globalPlugins\remotePlusPlus\interface.py:574
 msgid "Please fill in Name, Host and Key."
 msgstr "请填写名称、主机和密钥。"
 
 #. Translators: Error message when name or key is empty.
-#: addon\globalPlugins\remotePlusPlus\interface.py:537
+#: addon\globalPlugins\remotePlusPlus\interface.py:587
 msgid "Please fill in Name and Key."
 msgstr "请填写名称和密钥。"
 
 #. Translators: Error message when port number is invalid.
-#: addon\globalPlugins\remotePlusPlus\interface.py:542
+#: addon\globalPlugins\remotePlusPlus\interface.py:592
 msgid "Port must be a number between 1 and 65535."
 msgstr "端口必须是 1 到 65535 之间的数字。"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:560
+#: addon\globalPlugins\remotePlusPlus\interface.py:610
 msgid "Manage Groups"
 msgstr "管理分组"
 
 #. Translators: Button to create a new group.
 #. Translators: Button to create a new connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:579
-#: addon\globalPlugins\remotePlusPlus\interface.py:777
+#: addon\globalPlugins\remotePlusPlus\interface.py:629
+#: addon\globalPlugins\remotePlusPlus\interface.py:827
 msgid "&New..."
 msgstr "新建(&N)..."
 
 #. Translators: Button to rename a group.
-#: addon\globalPlugins\remotePlusPlus\interface.py:584
+#: addon\globalPlugins\remotePlusPlus\interface.py:634
 msgid "&Rename..."
 msgstr "重命名(&R)..."
 
 #. Translators: Button to delete a group.
 #. Translators: Button to delete the selected connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:590
-#: addon\globalPlugins\remotePlusPlus\interface.py:786
+#: addon\globalPlugins\remotePlusPlus\interface.py:640
+#: addon\globalPlugins\remotePlusPlus\interface.py:836
 msgid "&Delete"
 msgstr "删除(&D)"
 
 #. Translators: Button to close the dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:598
-#: addon\globalPlugins\remotePlusPlus\interface.py:791
+#: addon\globalPlugins\remotePlusPlus\interface.py:648
+#: addon\globalPlugins\remotePlusPlus\interface.py:841
 msgid "&Close"
 msgstr "关闭(&C)"
 
 #. Translators: Prompt for entering a new group name.
-#: addon\globalPlugins\remotePlusPlus\interface.py:629
+#: addon\globalPlugins\remotePlusPlus\interface.py:679
 msgid "Enter new group name:"
 msgstr "输入新分组名称："
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:629
+#: addon\globalPlugins\remotePlusPlus\interface.py:679
 msgid "New Group"
 msgstr "新建分组"
 
 #. Translators: Error when a group with the same name already exists.
-#: addon\globalPlugins\remotePlusPlus\interface.py:641
+#: addon\globalPlugins\remotePlusPlus\interface.py:691
 msgid "Group already exists or invalid."
 msgstr "分组已存在或无效。"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:653
+#: addon\globalPlugins\remotePlusPlus\interface.py:703
 msgid "Enter new name:"
 msgstr "输入新名称："
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:654
+#: addon\globalPlugins\remotePlusPlus\interface.py:704
 msgid "Rename Group"
 msgstr "重命名分组"
 
 #. Translators: Error when trying to rename to an existing group name.
-#: addon\globalPlugins\remotePlusPlus\interface.py:666
+#: addon\globalPlugins\remotePlusPlus\interface.py:716
 msgid "Group name already exists."
 msgstr "分组名称已存在。"
 
 #. Translators: Confirmation message when deleting a single group.
-#: addon\globalPlugins\remotePlusPlus\interface.py:680
+#: addon\globalPlugins\remotePlusPlus\interface.py:730
 #, python-brace-format
 msgid "Delete group '{group}'? Connections will be moved to Default."
 msgstr "是否删除分组“{group}”？其中的连接将被移至默认分组。"
 
 #. Translators: Confirmation message when deleting multiple groups.
-#: addon\globalPlugins\remotePlusPlus\interface.py:685
+#: addon\globalPlugins\remotePlusPlus\interface.py:735
 #, python-brace-format
 msgid "Delete {count} selected groups? Connections will be moved to Default."
 msgstr "是否删除 {count} 个选中分组？其中的连接将被移至默认分组。"
 
 #. Translators: Title of the confirmation dialog for deleting connections.
-#: addon\globalPlugins\remotePlusPlus\interface.py:692
-#: addon\globalPlugins\remotePlusPlus\interface.py:1026
+#: addon\globalPlugins\remotePlusPlus\interface.py:742
+#: addon\globalPlugins\remotePlusPlus\interface.py:1076
 msgid "Confirm Delete"
 msgstr "确认删除"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:710
+#: addon\globalPlugins\remotePlusPlus\interface.py:760
 msgid "Remote Connection Manager"
 msgstr "远程连接管理器"
 
 #. Translators: Label for the group dropdown in the connection manager.
-#: addon\globalPlugins\remotePlusPlus\interface.py:727
+#: addon\globalPlugins\remotePlusPlus\interface.py:777
 msgid "&Group:"
 msgstr "分组(&G)："
 
 #. Translators: Button to open the group management dialog.
-#: addon\globalPlugins\remotePlusPlus\interface.py:734
+#: addon\globalPlugins\remotePlusPlus\interface.py:784
 msgid "&Manage Groups..."
 msgstr "管理分组(&M)..."
 
 #. Translators: Label for the search field in the connection manager.
-#: addon\globalPlugins\remotePlusPlus\interface.py:742
+#: addon\globalPlugins\remotePlusPlus\interface.py:792
 msgid "&Search:"
 msgstr "搜索(&S)："
 
 #. Translators: Label for the connections list in the connection manager.
-#: addon\globalPlugins\remotePlusPlus\interface.py:749
+#: addon\globalPlugins\remotePlusPlus\interface.py:799
 msgid "&All connections:"
 msgstr "连接(&A)："
 
 #. Translators: Column header for connection name.
-#: addon\globalPlugins\remotePlusPlus\interface.py:754
+#: addon\globalPlugins\remotePlusPlus\interface.py:804
 msgid "Name"
 msgstr "名称"
 
 #. Translators: Column header for connection host.
-#: addon\globalPlugins\remotePlusPlus\interface.py:756
+#: addon\globalPlugins\remotePlusPlus\interface.py:806
 msgid "Host"
 msgstr "主机"
 
 #. Translators: Column header for connection mode.
-#: addon\globalPlugins\remotePlusPlus\interface.py:758
+#: addon\globalPlugins\remotePlusPlus\interface.py:808
 msgctxt "remote"
 msgid "Mode"
 msgstr "模式"
 
 #. Translators: Checkbox to close the dialog after connecting.
-#: addon\globalPlugins\remotePlusPlus\interface.py:769
+#: addon\globalPlugins\remotePlusPlus\interface.py:819
 msgid "Close after connecting"
 msgstr "连接后关闭该窗口"
 
 #. Translators: Button to edit the selected connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:781
+#: addon\globalPlugins\remotePlusPlus\interface.py:831
 msgid "&Edit..."
 msgstr "编辑(&E)..."
 
 #. Translators: Title of the dialog to create a new connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:974
+#: addon\globalPlugins\remotePlusPlus\interface.py:1024
 msgid "New Connection"
 msgstr "新建连接"
 
 #. Translators: Title of the dialog to edit a connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1002
+#: addon\globalPlugins\remotePlusPlus\interface.py:1052
 msgid "Edit Connection"
 msgstr "编辑连接"
 
 #. Translators: Confirmation message when deleting a single connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1017
+#: addon\globalPlugins\remotePlusPlus\interface.py:1067
 #, python-brace-format
 msgid "Delete connection '{name}'?"
 msgstr "是否删除连接“{name}”？"
 
 #. Translators: Confirmation message when deleting multiple connections.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1020
+#: addon\globalPlugins\remotePlusPlus\interface.py:1070
 #, python-brace-format
 msgid "Delete {count} selected connections?"
 msgstr "是否删除 {count} 个选中的连接？"
 
 #. Translators: Message announced when connection link is copied to clipboard.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1045
+#: addon\globalPlugins\remotePlusPlus\interface.py:1095
 msgid "Copied link"
 msgstr "复制链接"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:1077
+#: addon\globalPlugins\remotePlusPlus\interface.py:1127
 #, python-brace-format
 msgid ""
 "Replace the current auto-connect configuration with this connection?\n"
@@ -475,7 +492,7 @@ msgstr ""
 "主机：{host}\n"
 "模式：{mode}"
 
-#: addon\globalPlugins\remotePlusPlus\interface.py:1085
+#: addon\globalPlugins\remotePlusPlus\interface.py:1135
 #, python-brace-format
 msgid ""
 "Set this connection as auto-connect and enable automatic connection at "
@@ -492,96 +509,100 @@ msgstr ""
 "模式：{mode}"
 
 #. Translators: Title of the dialog for setting auto-connect.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1095
+#: addon\globalPlugins\remotePlusPlus\interface.py:1145
 msgid "Set as Auto-Connect"
 msgstr "设为自动连接"
 
 #. Translators: Message announced when the connection is set as auto-connect.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1102
+#: addon\globalPlugins\remotePlusPlus\interface.py:1152
 msgid "Auto-connect configuration saved"
 msgstr "自动连接配置已保存"
 
 #. Translators: Context menu item to connect to the selected server.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1115
+#: addon\globalPlugins\remotePlusPlus\interface.py:1165
 msgid "&Connect"
 msgstr "连接(&C)"
 
 #. Translators: Context menu item to connect with reversed mode. Shift+Enter is the shortcut.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1118
+#: addon\globalPlugins\remotePlusPlus\interface.py:1168
 msgid "Connect &Reversed\tShift+Enter"
 msgstr "以反向模式连接(&R)\tShift+回车"
 
 #. Translators: Context menu item to edit the selected connection.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1122
+#: addon\globalPlugins\remotePlusPlus\interface.py:1172
 msgid "&Edit...\tF2"
 msgstr "编辑...(&E)\tF2"
 
 #. Translators: Context menu item to copy the connection link.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1125
+#: addon\globalPlugins\remotePlusPlus\interface.py:1175
 msgid "Copy &link\tCtrl+C"
 msgstr "复制链接(&L)\tCtrl+C"
 
 #. Translators: Context menu item to set the selected connection as auto-connect configuration.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1128
+#: addon\globalPlugins\remotePlusPlus\interface.py:1178
 msgid "Set as &Auto-Connect"
 msgstr "设为自动连接(&A)"
 
 #. Translators: Context menu item to move the selected connection up. Alt+Up is the shortcut.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1132
+#: addon\globalPlugins\remotePlusPlus\interface.py:1182
 msgid "Move &Up\tAlt+Up"
 msgstr "上移(&U)\tAlt+上光标"
 
 #. Translators: Context menu item to move the selected connection down. Alt+Down is the shortcut.
-#: addon\globalPlugins\remotePlusPlus\interface.py:1135
+#: addon\globalPlugins\remotePlusPlus\interface.py:1185
 msgid "Move &Down\tAlt+Down"
 msgstr "下移(&D)\tAlt+下光标"
 
 #. Translators: Context menu item to delete the selected connection(s).
-#: addon\globalPlugins\remotePlusPlus\interface.py:1139
+#: addon\globalPlugins\remotePlusPlus\interface.py:1189
 msgid "&Delete\tDel"
 msgstr "删除(&D)\tDel"
 
 #. Translators: The relay cannot select among multiple controlled computers.
-#: addon\globalPlugins\remotePlusPlus\service.py:713
+#: addon\globalPlugins\remotePlusPlus\service.py:762
 msgid "Remote audio requires exactly one controlled computer in the channel."
 msgstr "使用远程音频时，通道中只能有一台被控计算机。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:764
+#: addon\globalPlugins\remotePlusPlus\service.py:831
 msgid "The remote audio control channel is unavailable."
 msgstr "远程音频控制通道不可用。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:776
+#: addon\globalPlugins\remotePlusPlus\service.py:844
 msgid ""
-"No audio response. Check the connection and make sure both computers use NVDA's "
-"built-in Remote Access with the same Remote++ version."
-msgstr "未收到音频响应。请检查连接，并确保两台计算机均使用 NVDA 内置远程访问及相同版本的 Remote++。"
+"No audio response. Check the connection and make sure both computers use "
+"NVDA's built-in Remote Access with the same Remote++ version."
+msgstr ""
+"未收到音频响应。请检查连接，并确保两台计算机均使用 NVDA 内置远程访问及相同版"
+"本的 Remote++。"
 
 #. Translators: Another controller currently owns the shared audio stream.
-#: addon\globalPlugins\remotePlusPlus\service.py:814
+#: addon\globalPlugins\remotePlusPlus\service.py:887
 msgid ""
 "Another controller is using remote audio. Try again after they turn it off."
 msgstr "另一位控制方正在使用远程音频，请在其关闭后重试。"
 
 #. Translators: PCM audio from older Remote++ versions is no longer supported.
-#: addon\globalPlugins\remotePlusPlus\service.py:817
+#: addon\globalPlugins\remotePlusPlus\service.py:890
 msgid "Upgrade Remote++ on both computers to use Opus audio."
 msgstr "请升级两台计算机上的 Remote++ 以使用 Opus 音频。"
 
 #. Translators: The peer requested invalid or unsupported Opus settings.
-#: addon\globalPlugins\remotePlusPlus\service.py:820
+#: addon\globalPlugins\remotePlusPlus\service.py:893
+#: addon\globalPlugins\remotePlusPlus\service.py:896
 msgid "The requested Opus audio settings are not supported."
 msgstr "不支持请求的 Opus 音频设置。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:855
-#: addon\globalPlugins\remotePlusPlus\service.py:968
+#: addon\globalPlugins\remotePlusPlus\service.py:935
+#: addon\globalPlugins\remotePlusPlus\service.py:1066
 msgid "Audio component unavailable."
 msgstr "音频组件不可用。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:952
+#: addon\globalPlugins\remotePlusPlus\service.py:1046
+#: addon\globalPlugins\remotePlusPlus\service.py:1053
 msgid "Remote connection information is unavailable."
 msgstr "远程连接信息不可用。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:977
+#: addon\globalPlugins\remotePlusPlus\service.py:1075
 msgid "Remote audio is unavailable."
 msgstr "远程音频不可用。"
 
@@ -652,30 +673,45 @@ msgstr "已连接到默认服务器。"
 
 #. Add-on description
 #. Translators: Long description to be shown for this add-on on add-on information from add-on store
-#: buildVars.py:24
+#: buildVars.py:23
 msgid "Enhances NVDA Remote with productivity features for power users."
 msgstr "增强 NVDA 远程访问功能，为高级用户提供更高效的操作体验。"
 
 #. Brief changelog for this version
 #. Translators: what's new content for the add-on version to be shown in the add-on store
-#: buildVars.py:29
+#: buildVars.py:28
 msgid ""
-"## 0.5.0\n"
+"## 1.0.0\n"
 "\n"
-"- Require NVDA 2026.1 or later.\n"
-"- Prevent duplicate Remote++ items in the Remote Access menu.\n"
-"- Show \"Connect to Default Server\" as soon as an auto-connect connection "
-"is set.\n"
-"- Improve group handling and reordering in filtered connection lists.\n"
-"- Improve dialog focus handling and local server detection.\n"
-"- Add optional low-latency audio relay through NVDARemoteAudioServer.\n"
-"- Add playback buffer and transmission quality options in NVDA Settings, "
-"with defaults clearly marked.\n"
-"- Add separate menu toggles for remote system sounds and microphone input. "
-"The\n"
-"  current Remote host is reused with the fixed audio port 6838; no audio\n"
-"  shortcut or per-connection audio settings are added."
+"- Raise the minimum supported NVDA version to 2026.1.\n"
+"- Add low-latency audio relay for listening to the controlled computer's "
+"system sounds and making bidirectional voice calls. This requires "
+"[NVDARemoteAudioServer](https://github.com/haitun001/NVDARemoteAudioServer) "
+"to be deployed on the host running the Remote Access server with TCP and UDP "
+"port 6838 exposed; Remote++ reuses the server address and key from the "
+"current Remote connection.\n"
+"- Add separate playback buffer, bitrate, channel, and transmission mode "
+"settings for system audio and voice calls in NVDA Settings → Remote++.\n"
+"- Add \"Listen to remote system sounds\" and \"Voice call\" to the Remote "
+"Access menu.\n"
+"- Pause the controlled computer's normal NVDA Remote speech feedback while "
+"remote system sound listening is enabled to avoid duplicate speech.\n"
+"- Require an audio-capable Remote++ version on both computers; older "
+"versions continue to support normal Remote control.\n"
+"- Add Turkish translation.\n"
 msgstr ""
+"## 1.0.0\n"
+"\n"
+"- 将支持的最低 NVDA 版本提升至 2026.1。\n"
+"- 新增低延迟音频传输，可收听被控计算机的系统声音并进行双向语音通话。需要在运行 Remote Access 服务端的主机上部署 [NVDARemoteAudioServer](https://github.com/haitun001/NVDARemoteAudioServer)，并开放 TCP 和 UDP 6838 端口；Remote++ 会复用当前 Remote 连接的服务器地址和密钥。\n"
+"- 在 NVDA 设置 → Remote++ 中，为系统声音和语音通话分别提供播放缓冲、比特率、声道及传输模式设置。\n"
+"- 在 Remote Access 菜单中新增“收听远程系统声音”和“语音通话”。\n"
+"- 开启收听远程系统声音时，暂停被控计算机的 NVDA Remote 常规语音反馈，以避免重复朗读。\n"
+"- 两台计算机都需要使用支持音频的 Remote++ 版本；旧版本仍支持常规远程控制。\n"
+"- 新增土耳其语翻译。\n"
+
+#~ msgid "Listen to remote microphone"
+#~ msgstr "收听远程麦克风"
 
 #~ msgid "Native audio component is not installed."
 #~ msgstr "未安装音频转发组件。"
