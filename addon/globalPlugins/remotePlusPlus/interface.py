@@ -985,7 +985,7 @@ class ConnectionManagerDialog(wx.Dialog):
 		if conn.get("selfHosted", False):
 			self.service.startLocalServer(conn["port"], conn["key"])
 
-		self.service.connect(info)
+		self.service.connect(info, savedConnectionId=conn.get("id"))
 
 		if self.closeOnConnectChk.GetValue():
 			self.Close()

@@ -268,6 +268,32 @@ class ConnectionManager:
 		"""
 		return self.data["groups"].get(groupName, [])
 
+	def getAdjacentConnection(
+		self,
+		currentId: str | None,
+		direction: int,
+	) -> dict[str, Any] | None:
+		"""Return the next or previous saved connection after the selected entry."""
+		connections: list[Any] = self.getConnections(self.getActiveGroup())
+		if not connections:
+			return None
+
+		step = 1 if direction >= 0 else -1
+		currentIndex = next(
+			(
+				index
+				for index, connection in enumerate(connections)
+				if isinstance(connection, dict) and connection.get("id") == currentId
+			),
+			-1,
+		)
+
+		if currentIndex == -1:
+			return connections[0 if step > 0 else -1]
+		if len(connections) == 1:
+			return None
+		return connections[(currentIndex + step) % len(connections)]
+
 	def addConnection(
 		self,
 		groupName: str,
@@ -370,6 +396,7 @@ class RemoteService:
 
 	def __init__(self) -> None:
 		self.connection_manager = ConnectionManager()
+		self._selectedSavedConnectionId: str | None = None
 		self.audio = AudioService()
 		self._audioStateCallback: Callable[[AudioStateEvent], None] | None = None
 		self.audio.set_state_callback(self._onNativeAudioState)
@@ -408,6 +435,11 @@ class RemoteService:
 		if not self.isRunning():
 			return False
 		return _remoteClient._remoteClient.isConnected()
+
+	def isConnecting(self) -> bool:
+		"""Check if NVDA Remote is establishing or retrying a connection."""
+		client = self.getClient()
+		return bool(client and client.isConnecting)
 
 	def getClient(self) -> "_remoteClient.client.RemoteClient | None":
 		"""Return the raw RemoteClient instance if running, else None."""
@@ -1241,14 +1273,67 @@ class RemoteService:
 			return
 		self._registerAudioTransport(self._getAudioTransport())
 
-	def connect(self, info: ConnectionInfo) -> None:
+	def connect(self, info: ConnectionInfo, savedConnectionId: str | None = None) -> None:
 		"""Initiate a connection.
 
 		:param info: The ConnectionInfo containing connection details.
+		:param savedConnectionId: ID of the saved connection being used, if any.
 		"""
+		self._selectedSavedConnectionId = savedConnectionId if isinstance(savedConnectionId, str) else None
 		client = self.getClient()
 		if client:
 			client.connect(info)
+
+	def getAdjacentSavedConnection(self, direction: int) -> dict[str, Any] | None:
+		"""Return an adjacent saved connection in the active group."""
+		return self.connection_manager.getAdjacentConnection(self._selectedSavedConnectionId, direction)
+
+	def connectSavedConnection(self, connection: dict[str, Any]) -> bool:
+		"""Disconnect and initiate a connection from a saved connection entry."""
+		try:
+			mode = {
+				"leader": ConnectionMode.LEADER,
+				"follower": ConnectionMode.FOLLOWER,
+			}[connection["mode"]]
+			hostname = connection["host"]
+			port = connection["port"]
+			key = connection["key"]
+			selfHosted = connection.get("selfHosted", False)
+			if (
+				type(hostname) is not str
+				or not hostname
+				or type(port) is not int
+				or not 1 <= port <= 65535
+				or type(key) is not str
+				or not key
+				or type(selfHosted) is not bool
+			):
+				raise ValueError
+		except (KeyError, TypeError, ValueError):
+			connectionDetails = (
+				{field: connection.get(field) for field in ("host", "port", "mode", "selfHosted")}
+				if isinstance(connection, dict)
+				else type(connection).__name__
+			)
+			log.error(f"Invalid saved remote connection: {connectionDetails!r}")
+			return False
+
+		client = self.getClient()
+		if client is None or client.isConnecting:
+			return False
+		info = ConnectionInfo(
+			mode=mode,
+			hostname=hostname,
+			port=port,
+			key=key,
+			insecure=selfHosted,
+		)
+		if self.isConnected():
+			self.disconnect(silent=True)
+		if selfHosted:
+			self.startLocalServer(port, key)
+		self.connect(info, savedConnectionId=connection.get("id"))
+		return True
 
 	def startLocalServer(self, port: int, key: str) -> None:
 		"""Start the local control server.

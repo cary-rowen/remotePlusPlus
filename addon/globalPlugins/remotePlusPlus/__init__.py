@@ -238,6 +238,22 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		self._performConnectToDefault()
 
 	@script(
+		# Translators: Description of the script to connect to the previous saved connection.
+		description=_("Connects to the previous saved connection."),
+		category=pgettext("remote", "Remote Access"),
+	)
+	def script_connectToPreviousSavedConnection(self, gesture: inputCore.InputGesture) -> None:
+		self._performConnectToSavedConnection(-1)
+
+	@script(
+		# Translators: Description of the script to connect to the next saved connection.
+		description=_("Connects to the next saved connection."),
+		category=pgettext("remote", "Remote Access"),
+	)
+	def script_connectToNextSavedConnection(self, gesture: inputCore.InputGesture) -> None:
+		self._performConnectToSavedConnection(1)
+
+	@script(
 		description=_("Listen to remote system sounds"),
 		category=pgettext("remote", "Remote Access"),
 	)
@@ -271,6 +287,26 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		sources = self.service.getAudioSources() ^ source
 		if not self.service.requestAudioSources(sources):
 			ui.message(_("Unable to request remote audio."))
+
+	@alwaysCallAfter
+	def _performConnectToSavedConnection(self, direction: int) -> None:
+		if not self.service.isRunning():
+			# Translators: Shown when action is unavailable because Remote Access is disabled.
+			ui.message(pgettext("remote", "Action unavailable when Remote Access is disabled"))
+			return
+		if self.service.isConnecting():
+			return
+
+		connection = self.service.getAdjacentSavedConnection(direction)
+		if connection is None:
+			# Translators: Shown when no saved connection can be selected.
+			ui.message(_("No saved connection is available."))
+			return
+		if isinstance(connection.get("name"), str) and connection["name"]:
+			ui.message(connection["name"])
+		if not self.service.connectSavedConnection(connection):
+			# Translators: Shown when a saved connection entry is invalid.
+			ui.message(_("The saved connection is invalid."))
 
 	@alwaysCallAfter
 	def _performConnectToDefault(self) -> None:
