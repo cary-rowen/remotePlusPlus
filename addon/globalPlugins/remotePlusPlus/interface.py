@@ -56,8 +56,16 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 		voiceSettings = (
 			self.service.connection_manager.getVoiceAudioSettings() if self.service else AudioSettings()
 		)
-		helper.addItem(wx.StaticText(self, label=_("System audio")))
-		self.systemBufferChoice = helper.addLabeledControl(
+		# Translators: The controlling computer selects the audio parameters for the connection.
+		helper.addItem(wx.StaticText(self, label=_("The controlling computer chooses the audio parameters.")))
+		systemGroupSizer = wx.StaticBoxSizer(
+			wx.VERTICAL,
+			self,
+			label=_("Listen to the controlled computer's system sounds"),
+		)
+		systemGroup = BoxSizerHelper(self, sizer=systemGroupSizer)
+		helper.addItem(systemGroup)
+		self.systemBufferChoice = systemGroup.addLabeledControl(
 			# Translators: How much remote audio to buffer before playback.
 			_("Playback &buffer:"),
 			wx.Choice,
@@ -69,7 +77,7 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 			],
 		)
 		self.systemBufferChoice.SetSelection(AUDIO_BUFFER_VALUES.index(settings.bufferMs))
-		self.systemBitrateChoice = helper.addLabeledControl(
+		self.systemBitrateChoice = systemGroup.addLabeledControl(
 			_("Audio bit&rate:"),
 			wx.Choice,
 			choices=[
@@ -79,13 +87,13 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 			],
 		)
 		self.systemBitrateChoice.SetSelection(AUDIO_BITRATES.index(settings.bitrateKbps))
-		self.systemChannelsChoice = helper.addLabeledControl(
+		self.systemChannelsChoice = systemGroup.addLabeledControl(
 			_("Audio &channels:"),
 			wx.Choice,
 			choices=[_("Mono"), _("Stereo (default)")],
 		)
 		self.systemChannelsChoice.SetSelection(AUDIO_CHANNELS.index(settings.channels))
-		self.systemFrameChoice = helper.addLabeledControl(
+		self.systemFrameChoice = systemGroup.addLabeledControl(
 			_("&Transmission mode:"),
 			wx.Choice,
 			choices=[_("Low latency: 10 ms per packet (default)"), _("Balanced: 20 ms per packet")],
@@ -96,8 +104,10 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 		self.bitrateChoice = self.systemBitrateChoice
 		self.channelsChoice = self.systemChannelsChoice
 		self.frameChoice = self.systemFrameChoice
-		helper.addItem(wx.StaticText(self, label=_("Voice call")))
-		self.voiceBufferChoice = helper.addLabeledControl(
+		voiceGroupSizer = wx.StaticBoxSizer(wx.VERTICAL, self, label=_("Voice call"))
+		voiceGroup = BoxSizerHelper(self, sizer=voiceGroupSizer)
+		helper.addItem(voiceGroup)
+		self.voiceBufferChoice = voiceGroup.addLabeledControl(
 			_("Playback &buffer:"),
 			wx.Choice,
 			choices=[
@@ -106,7 +116,7 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 			],
 		)
 		self.voiceBufferChoice.SetSelection(AUDIO_BUFFER_VALUES.index(voiceSettings.bufferMs))
-		self.voiceBitrateChoice = helper.addLabeledControl(
+		self.voiceBitrateChoice = voiceGroup.addLabeledControl(
 			_("Audio bit&rate:"),
 			wx.Choice,
 			choices=[
@@ -116,13 +126,13 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 			],
 		)
 		self.voiceBitrateChoice.SetSelection(AUDIO_BITRATES.index(voiceSettings.bitrateKbps))
-		self.voiceChannelsChoice = helper.addLabeledControl(
+		self.voiceChannelsChoice = voiceGroup.addLabeledControl(
 			_("Audio &channels:"),
 			wx.Choice,
 			choices=[_("Mono"), _("Stereo (default)")],
 		)
 		self.voiceChannelsChoice.SetSelection(AUDIO_CHANNELS.index(voiceSettings.channels))
-		self.voiceFrameChoice = helper.addLabeledControl(
+		self.voiceFrameChoice = voiceGroup.addLabeledControl(
 			_("&Transmission mode:"),
 			wx.Choice,
 			choices=[
