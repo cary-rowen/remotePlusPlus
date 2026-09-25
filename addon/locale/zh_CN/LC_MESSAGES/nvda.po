@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 'remotePlusPlus' '0.3.0'\n"
 "Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
-"POT-Creation-Date: 2026-09-24 07:29+0800\n"
+"POT-Creation-Date: 2026-09-25 23:23+0800\n"
 "PO-Revision-Date: 2026-01-18 16:37+0800\n"
 "Last-Translator: 完美很难 <1872265132@qq.com>\n"
 "Language-Team: \n"
@@ -74,7 +74,7 @@ msgstr "被控计算机已停止音频共享。"
 #: addon\globalPlugins\remotePlusPlus\audio.py:444
 #: addon\globalPlugins\remotePlusPlus\audio.py:495
 #: addon\globalPlugins\remotePlusPlus\audio.py:583
-#: addon\globalPlugins\remotePlusPlus\service.py:705
+#: addon\globalPlugins\remotePlusPlus\service.py:757
 msgid "Audio component failed."
 msgstr "音频组件运行失败。"
 
@@ -177,6 +177,7 @@ msgstr "均衡：每包 20 毫秒"
 
 #: addon\globalPlugins\remotePlusPlus\interface.py:99
 #: addon\globalPlugins\remotePlusPlus\interface.py:271
+#: addon\globalPlugins\remotePlusPlus\__init__.py:264
 msgid "Voice call"
 msgstr "语音通话"
 
@@ -213,6 +214,7 @@ msgid "S&wap Control Mode"
 msgstr "交换控制模式(&W)"
 
 #: addon\globalPlugins\remotePlusPlus\interface.py:265
+#: addon\globalPlugins\remotePlusPlus\__init__.py:257
 msgid "Listen to remote system sounds"
 msgstr "收听远程系统声音"
 
@@ -559,15 +561,15 @@ msgid "&Delete\tDel"
 msgstr "删除(&D)\tDel"
 
 #. Translators: The relay cannot select among multiple controlled computers.
-#: addon\globalPlugins\remotePlusPlus\service.py:762
+#: addon\globalPlugins\remotePlusPlus\service.py:814
 msgid "Remote audio requires exactly one controlled computer in the channel."
 msgstr "使用远程音频时，通道中只能有一台被控计算机。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:831
+#: addon\globalPlugins\remotePlusPlus\service.py:883
 msgid "The remote audio control channel is unavailable."
 msgstr "远程音频控制通道不可用。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:844
+#: addon\globalPlugins\remotePlusPlus\service.py:896
 msgid ""
 "No audio response. Check the connection and make sure both computers use "
 "NVDA's built-in Remote Access with the same Remote++ version."
@@ -576,33 +578,33 @@ msgstr ""
 "本的 Remote++。"
 
 #. Translators: Another controller currently owns the shared audio stream.
-#: addon\globalPlugins\remotePlusPlus\service.py:887
+#: addon\globalPlugins\remotePlusPlus\service.py:939
 msgid ""
 "Another controller is using remote audio. Try again after they turn it off."
 msgstr "另一位控制方正在使用远程音频，请在其关闭后重试。"
 
 #. Translators: PCM audio from older Remote++ versions is no longer supported.
-#: addon\globalPlugins\remotePlusPlus\service.py:890
+#: addon\globalPlugins\remotePlusPlus\service.py:942
 msgid "Upgrade Remote++ on both computers to use Opus audio."
 msgstr "请升级两台计算机上的 Remote++ 以使用 Opus 音频。"
 
 #. Translators: The peer requested invalid or unsupported Opus settings.
-#: addon\globalPlugins\remotePlusPlus\service.py:893
-#: addon\globalPlugins\remotePlusPlus\service.py:896
+#: addon\globalPlugins\remotePlusPlus\service.py:945
+#: addon\globalPlugins\remotePlusPlus\service.py:948
 msgid "The requested Opus audio settings are not supported."
 msgstr "不支持请求的 Opus 音频设置。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:935
-#: addon\globalPlugins\remotePlusPlus\service.py:1066
+#: addon\globalPlugins\remotePlusPlus\service.py:987
+#: addon\globalPlugins\remotePlusPlus\service.py:1118
 msgid "Audio component unavailable."
 msgstr "音频组件不可用。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:1046
-#: addon\globalPlugins\remotePlusPlus\service.py:1053
+#: addon\globalPlugins\remotePlusPlus\service.py:1098
+#: addon\globalPlugins\remotePlusPlus\service.py:1105
 msgid "Remote connection information is unavailable."
 msgstr "远程连接信息不可用。"
 
-#: addon\globalPlugins\remotePlusPlus\service.py:1075
+#: addon\globalPlugins\remotePlusPlus\service.py:1127
 msgid "Remote audio is unavailable."
 msgstr "远程音频不可用。"
 
@@ -623,6 +625,10 @@ msgstr "打开远程连接管理器。"
 #: addon\globalPlugins\remotePlusPlus\__init__.py:175
 #: addon\globalPlugins\remotePlusPlus\__init__.py:201
 #: addon\globalPlugins\remotePlusPlus\__init__.py:235
+#: addon\globalPlugins\remotePlusPlus\__init__.py:243
+#: addon\globalPlugins\remotePlusPlus\__init__.py:251
+#: addon\globalPlugins\remotePlusPlus\__init__.py:258
+#: addon\globalPlugins\remotePlusPlus\__init__.py:265
 msgctxt "remote"
 msgid "Remote Access"
 msgstr "远程访问"
@@ -630,7 +636,8 @@ msgstr "远程访问"
 #. Translators: Shown when action is unavailable because Remote Access is disabled.
 #: addon\globalPlugins\remotePlusPlus\__init__.py:185
 #: addon\globalPlugins\remotePlusPlus\__init__.py:212
-#: addon\globalPlugins\remotePlusPlus\__init__.py:266
+#: addon\globalPlugins\remotePlusPlus\__init__.py:295
+#: addon\globalPlugins\remotePlusPlus\__init__.py:316
 msgctxt "remote"
 msgid "Action unavailable when Remote Access is disabled"
 msgstr "禁用远程访问时该操作不可用"
@@ -642,7 +649,7 @@ msgstr "在控制/被控模式之间切换。"
 
 #. Translators: Shown when trying to perform an action that requires a connection.
 #: addon\globalPlugins\remotePlusPlus\__init__.py:217
-#: addon\globalPlugins\remotePlusPlus\__init__.py:250
+#: addon\globalPlugins\remotePlusPlus\__init__.py:280
 msgctxt "remote"
 msgid "Not connected"
 msgstr "未连接"
@@ -652,22 +659,42 @@ msgstr "未连接"
 msgid "Connects to the configured auto-connect server."
 msgstr "连接到配置的自动连接服务器。"
 
-#: addon\globalPlugins\remotePlusPlus\__init__.py:253
+#. Translators: Description of the script to connect to the previous saved connection.
+#: addon\globalPlugins\remotePlusPlus\__init__.py:242
+msgid "Connects to the previous saved connection."
+msgstr "连接到上一个已保存的连接。"
+
+#. Translators: Description of the script to connect to the next saved connection.
+#: addon\globalPlugins\remotePlusPlus\__init__.py:250
+msgid "Connects to the next saved connection."
+msgstr "连接到下一个已保存的连接。"
+
+#: addon\globalPlugins\remotePlusPlus\__init__.py:283
 msgctxt "remote"
 msgid "Not the controlling computer"
 msgstr "当前不是控制方"
 
-#: addon\globalPlugins\remotePlusPlus\__init__.py:259
+#: addon\globalPlugins\remotePlusPlus\__init__.py:289
 msgid "Unable to request remote audio."
 msgstr "无法请求远程音频。"
 
+#. Translators: Shown when no saved connection can be selected.
+#: addon\globalPlugins\remotePlusPlus\__init__.py:303
+msgid "No saved connection is available."
+msgstr "没有可用的已保存连接。"
+
+#. Translators: Shown when a saved connection entry is invalid.
+#: addon\globalPlugins\remotePlusPlus\__init__.py:309
+msgid "The saved connection is invalid."
+msgstr "已保存的连接无效。"
+
 #. Translators: Shown when auto-connect parameters are not configured.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:271
+#: addon\globalPlugins\remotePlusPlus\__init__.py:321
 msgid "Auto-connect parameters not configured."
 msgstr "自动连接参数未配置。"
 
 #. Translators: Shown when already connected to the default server.
-#: addon\globalPlugins\remotePlusPlus\__init__.py:280
+#: addon\globalPlugins\remotePlusPlus\__init__.py:330
 msgid "Already connected to default server."
 msgstr "已连接到默认服务器。"
 
@@ -694,6 +721,12 @@ msgid ""
 "settings for system audio and voice calls in NVDA Settings → Remote++.\n"
 "- Add \"Listen to remote system sounds\" and \"Voice call\" to the Remote "
 "Access menu.\n"
+"- Make \"Listen to remote system sounds\" and \"Voice call\" available for "
+"assignment in NVDA's Input Gestures dialog. No gestures are assigned by "
+"default.\n"
+"- Add configurable gestures for moving to the previous or next saved "
+"connection without opening the Connection Manager. The target connection "
+"name is announced before connecting. No gestures are assigned by default.\n"
 "- Pause the controlled computer's normal NVDA Remote speech feedback while "
 "remote system sound listening is enabled to avoid duplicate speech.\n"
 "- Require an audio-capable Remote++ version on both computers; older "
@@ -703,10 +736,17 @@ msgstr ""
 "## 1.0.0\n"
 "\n"
 "- 将支持的最低 NVDA 版本提升至 2026.1。\n"
-"- 新增低延迟音频传输，可收听被控计算机的系统声音并进行双向语音通话。需要在运行 Remote Access 服务端的主机上部署 [NVDARemoteAudioServer](https://github.com/haitun001/NVDARemoteAudioServer)，并开放 TCP 和 UDP 6838 端口；Remote++ 会复用当前 Remote 连接的服务器地址和密钥。\n"
-"- 在 NVDA 设置 → Remote++ 中，为系统声音和语音通话分别提供播放缓冲、比特率、声道及传输模式设置。\n"
+"- 新增低延迟音频传输，可收听被控计算机的系统声音并进行双向语音通话。需要在运"
+"行 Remote Access 服务端的主机上部署 [NVDARemoteAudioServer](https://"
+"github.com/haitun001/NVDARemoteAudioServer)，并开放 TCP 和 UDP 6838 端口；"
+"Remote++ 会复用当前 Remote 连接的服务器地址和密钥。\n"
+"- 在 NVDA 设置 → Remote++ 中，为系统声音和语音通话分别提供播放缓冲、比特率、"
+"声道及传输模式设置。\n"
 "- 在 Remote Access 菜单中新增“收听远程系统声音”和“语音通话”。\n"
-"- 开启收听远程系统声音时，暂停被控计算机的 NVDA Remote 常规语音反馈，以避免重复朗读。\n"
+"- “收听远程系统声音”和“语音通话”现在可以在 NVDA 的“输入手势”对话框中分配，默认不分配手势。\n"
+"- 新增向前或向后切换已保存连接的可配置手势，无需打开连接管理器即可快速切换；连接前会播报目标连接名称，默认不分配手势。\n"
+"- 开启收听远程系统声音时，暂停被控计算机的 NVDA Remote 常规语音反馈，以避免重"
+"复朗读。\n"
 "- 两台计算机都需要使用支持音频的 Remote++ 版本；旧版本仍支持常规远程控制。\n"
 "- 新增土耳其语翻译。\n"
 
