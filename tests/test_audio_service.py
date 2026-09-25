@@ -76,7 +76,11 @@ class AudioServiceTests(unittest.TestCase):
 			patch.object(audioModule, "createAudioRuntime", return_value=runtime) as start,
 			patch.object(audioModule, "Thread"),
 		):
-			self.assertTrue(service.start("remote.example", "master", "room", settings=settings))
+			self.assertTrue(
+				service.start(
+					"remote.example", "master", "room", settings=settings, systemDeviceId="speakers"
+				),
+			)
 		start.assert_called_once_with(
 			"remote.example",
 			6838,
@@ -86,9 +90,19 @@ class AudioServiceTests(unittest.TestCase):
 			settings,
 			False,
 			"system_audio",
+			None,
 		)
 		self.assertEqual(service.settings, settings)
+		service._event(
+			{"type": "capture_device", "device_id": "speakers"}, service.generation, "system_audio"
+		)
+		self.assertEqual(service.systemCaptureDeviceId, "speakers")
 		service.stop()
+		self.assertIsNone(service.systemCaptureDeviceId)
+		service._event(
+			{"type": "capture_device", "device_id": "stale"}, service.generation - 1, "system_audio"
+		)
+		self.assertIsNone(service.systemCaptureDeviceId)
 		runtime.stop.assert_called_once()
 
 	def testSourceMaskAndEnvelopeValidation(self):
@@ -102,6 +116,10 @@ class AudioServiceTests(unittest.TestCase):
 			sources=audioModule.AUDIO_SOURCE_SYSTEM,
 		)
 		self.assertEqual(audioModule.parse_audio_envelope(envelope), envelope)
+		self.assertEqual(
+			audioModule.parse_audio_envelope(audioModule.make_audio_envelope("device_changed")),
+			audioModule.make_audio_envelope("device_changed"),
+		)
 		for fields in [
 			{"kind": []},
 			{"version": True},
@@ -123,6 +141,30 @@ class AudioServiceTests(unittest.TestCase):
 			),
 		)
 
+	def testOnlyPublisherStreamsReceiveCaptureDevices(self):
+		service = AudioService()
+		runtimes = [runtimeWithEvents() for _ in range(3)]
+		for runtime, deviceId in zip(runtimes, ("speakers", "microphone", None)):
+			runtime.captureDeviceId = deviceId
+		with (
+			patch.object(audioModule, "createAudioRuntime", side_effect=runtimes) as create,
+			patch.object(audioModule, "Thread"),
+		):
+			self.assertTrue(
+				service.start(
+					"remote.example",
+					"slave",
+					"room",
+					sources=3,
+					systemDeviceId="speakers",
+					microphoneDeviceId="microphone",
+				),
+			)
+		self.assertEqual([call.args[-1] for call in create.call_args_list], ["speakers", "microphone", None])
+		self.assertEqual(service.captureDeviceIds, ("speakers", "microphone"))
+		service.stop()
+		self.assertEqual(service.captureDeviceIds, (None, None))
+
 	def testVoiceCallUsesIndependentDirectionalStreams(self):
 		service = AudioService()
 		runtimes = [runtimeWithEvents(), runtimeWithEvents()]
@@ -139,6 +181,7 @@ class AudioServiceTests(unittest.TestCase):
 					sources=audioModule.AUDIO_SOURCE_VOICE,
 					settings=settings,
 					voiceSettings=settings,
+					microphoneDeviceId="microphone",
 				),
 			)
 		self.assertEqual(
@@ -148,6 +191,7 @@ class AudioServiceTests(unittest.TestCase):
 				("publisher", audioModule.AUDIO_SOURCE_MICROPHONE, "voice_controller_to_controlled"),
 			],
 		)
+		self.assertEqual([call.args[-1] for call in create.call_args_list], [None, "microphone"])
 		service.stop()
 		for runtime in runtimes:
 			runtime.stop.assert_called_once()
@@ -174,7 +218,7 @@ class AudioServiceTests(unittest.TestCase):
 			patch.object(audioModule, "Thread"),
 		):
 			self.assertTrue(service.start("remote.example", "master", "room"))
-		self.assertTrue(start.call_args.args[-1])
+		self.assertTrue(start.call_args.args[-3])
 		service.setMuted(False)
 		runtime.setMuted.assert_called_once_with(False)
 		service.stop()

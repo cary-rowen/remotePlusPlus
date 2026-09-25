@@ -33,6 +33,8 @@ from _remoteClient.protocol import RemoteMessageType, addressToHostPort
 from config.configFlags import RemoteConnectionMode
 from utils import mmdevice
 
+from .audioCapture import getDefaultDeviceId
+
 from .audio import (
 	AUDIO_ENVELOPE_KEY,
 	AUDIO_PORT,
@@ -127,17 +129,48 @@ class ConnectionManager:
 		"""Return system-audio preferences, independent of saved connections."""
 		return normalizeAudioSettings(self.data.get("audio_settings"))
 
-	def setAudioSettings(self, settings: AudioSettings, voiceSettings: AudioSettings | None = None) -> bool:
+	def getAudioDevices(self) -> tuple[str | None, str | None]:
+		devices = self.data.get("audio_devices")
+		if not isinstance(devices, dict):
+			return None, None
+		system, microphone = devices.get("system"), devices.get("microphone")
+		return (
+			system if isinstance(system, str) and system else None,
+			microphone if isinstance(microphone, str) and microphone else None,
+		)
+
+	def setAudioSettings(
+		self,
+		settings: AudioSettings,
+		voiceSettings: AudioSettings | None = None,
+		*,
+		devices: tuple[str | None, str | None] | None = None,
+	) -> bool:
 		"""Persist preferences, restoring the previous values on write failure."""
-		if normalizeAudioSettings(settings._asdict()) != settings or (
-			voiceSettings is not None and normalizeAudioSettings(voiceSettings._asdict()) != voiceSettings
+		if (
+			normalizeAudioSettings(settings._asdict()) != settings
+			or (
+				voiceSettings is not None and normalizeAudioSettings(voiceSettings._asdict()) != voiceSettings
+			)
+			or (
+				devices is not None
+				and (
+					len(devices) != 2
+					or any(
+						value is not None and (not isinstance(value, str) or not value) for value in devices
+					)
+				)
+			)
 		):
 			return False
 		old = self.data.get("audio_settings")
 		oldVoice = self.data.get("voice_audio_settings")
+		oldDevices = self.data.get("audio_devices")
 		self.data["audio_settings"] = settings._asdict()
 		if voiceSettings is not None:
 			self.data["voice_audio_settings"] = voiceSettings._asdict()
+		if devices is not None:
+			self.data["audio_devices"] = {"system": devices[0], "microphone": devices[1]}
 		if self.saveConfig():
 			return True
 		if old is None:
@@ -149,6 +182,11 @@ class ConnectionManager:
 				self.data.pop("voice_audio_settings", None)
 			else:
 				self.data["voice_audio_settings"] = oldVoice
+		if devices is not None:
+			if oldDevices is None:
+				self.data.pop("audio_devices", None)
+			else:
+				self.data["audio_devices"] = oldDevices
 		return False
 
 	def getVoiceAudioSettings(self) -> AudioSettings:
@@ -418,8 +456,7 @@ class RemoteService:
 		self._speechSuppressionGeneration = 0
 		self._remoteAudioIncludesSpeech = False
 		self._publisherSpeechAvailable = False
-		self._publisherOutputDevice: str | None = None
-		self._publisherOutputDeviceAvailable = False
+		self._publisherNvdaOutputDeviceId: str | None = None
 		self._audioFollowers: set[int] = set()
 		self._originalAudioSend: Callable | None = None
 		self._audioSendWrapper: Callable | None = None
@@ -622,7 +659,7 @@ class RemoteService:
 	def _sendRemoteAudioMessage(self, send: Callable, type: RemoteMessageType, **kwargs: Any) -> None:
 		if (
 			send == self._originalAudioSend
-			and type == RemoteMessageType.SPEAK
+			and type in (RemoteMessageType.SPEAK, RemoteMessageType.TONE, RemoteMessageType.WAVE)
 			and self._publisherOwner is not None
 			and self.audio.state == "on"
 		):
@@ -637,36 +674,38 @@ class RemoteService:
 		"""Read native synth state only on the main thread; workers use its last result."""
 		if not sources & AUDIO_SOURCE_SYSTEM:
 			return False
-		if threading.current_thread() is not threading.main_thread():
-			return self._publisherSpeechAvailable
-		# NVDA and WASAPI capture follow the default eConsole endpoint. If a saved explicit
-		# device no longer exists, NVDA falls back to that endpoint as well.
-		outputDevice = config.conf["audio"]["outputDevice"]
-		defaultOutputDevice = config.conf.getConfigValidation(("audio", "outputDevice")).default
-		if outputDevice == defaultOutputDevice:
-			self._publisherOutputDevice = None
-			usesDefaultOutput = True
-		elif outputDevice != self._publisherOutputDevice:
-			try:
-				self._publisherOutputDeviceAvailable = any(
-					device.id == outputDevice for device in mmdevice.getOutputDevices()
-				)
-			except Exception:
-				# Preserve the conservative behavior if device enumeration is unavailable.
-				log.debug("Could not inspect the configured audio output device", exc_info=True)
-				self._publisherOutputDeviceAvailable = True
-			self._publisherOutputDevice = outputDevice
-			usesDefaultOutput = not self._publisherOutputDeviceAvailable
-		else:
-			usesDefaultOutput = not self._publisherOutputDeviceAvailable
-		synth = synthDriverHandler.getSynth()
-		self._publisherSpeechAvailable = bool(
-			synth is not None
-			and synth.name != "silence"
-			and (not synth.isSupported("volume") or synth.volume > 0)
-			and usesDefaultOutput,
+		if threading.current_thread() is threading.main_thread():
+			outputDevice = config.conf["audio"]["outputDevice"]
+			defaultOutputDevice = config.conf.getConfigValidation(("audio", "outputDevice")).default
+			if outputDevice == defaultOutputDevice:
+				explicitDeviceAvailable = False
+			else:
+				try:
+					explicitDeviceAvailable = any(
+						device.id == outputDevice for device in mmdevice.getOutputDevices()
+					)
+				except Exception:
+					log.debug("Could not inspect the configured audio output device", exc_info=True)
+					explicitDeviceAvailable = True
+			if explicitDeviceAvailable:
+				self._publisherNvdaOutputDeviceId = outputDevice
+			else:
+				try:
+					self._publisherNvdaOutputDeviceId = getDefaultDeviceId(0)
+				except Exception:
+					log.debug("Could not inspect the default audio output device", exc_info=True)
+					self._publisherNvdaOutputDeviceId = None
+			synth = synthDriverHandler.getSynth()
+			self._publisherSpeechAvailable = bool(
+				synth is not None
+				and synth.name != "silence"
+				and (not synth.isSupported("volume") or synth.volume > 0),
+			)
+		return bool(
+			self._publisherSpeechAvailable
+			and self._publisherNvdaOutputDeviceId
+			and self._publisherNvdaOutputDeviceId == self.audio.systemCaptureDeviceId
 		)
-		return self._publisherSpeechAvailable
 
 	def _handlePublisherSynthChanged(self, **kwargs: Any) -> None:
 		# Refresh even while a start request is queued and has not acquired ownership.
@@ -770,6 +809,35 @@ class RemoteService:
 			sources = self.getAudioSources()
 		if sources:
 			self.requestAudioSources(sources)
+
+	def saveAudioPreferences(
+		self,
+		settings: AudioSettings,
+		voiceSettings: AudioSettings,
+		devices: tuple[str | None, str | None],
+	) -> bool:
+		with self._audioRequestLock:
+			manager = self.connection_manager
+			oldDevices = manager.getAudioDevices()
+			qualityChanged = (
+				settings != manager.getAudioSettings() or voiceSettings != manager.getVoiceAudioSettings()
+			)
+			if not qualityChanged and devices == oldDevices:
+				return True
+			if not manager.setAudioSettings(settings, voiceSettings, devices=devices):
+				return False
+			microphoneChanged = devices[1] != oldDevices[1]
+			if self.isAudioLeader():
+				if qualityChanged or (microphoneChanged and self.getAudioSources() & AUDIO_SOURCE_VOICE):
+					self.applyAudioSettings()
+			else:
+				sources = self.audio.sources if self.audio.is_active() else 0
+				if self._publisherOwner is not None and (
+					(devices[0] != oldDevices[0] and sources & AUDIO_SOURCE_SYSTEM)
+					or (microphoneChanged and sources & AUDIO_SOURCE_VOICE)
+				):
+					self._queueAudioTask(self._sendAudioMessage, make_audio_envelope("device_changed"))
+			return True
 
 	def isAudioRequestPending(self) -> bool:
 		return self._audioRequestPending
@@ -916,6 +984,8 @@ class RemoteService:
 			self._queueAudioTask(self._handleAudioRequest, envelope, origin, epoch)
 		elif kind == "response":
 			self._queueAudioTask(self._handleAudioResponse, envelope, origin, epoch)
+		elif kind == "device_changed" and self.isAudioLeader() and self._audioFollowers == {origin}:
+			self.applyAudioSettings()
 
 	def _handleAudioRequest(self, envelope: dict[str, Any], origin: int, epoch: int) -> None:
 		if epoch != self._audioEpoch:
@@ -932,6 +1002,9 @@ class RemoteService:
 			return
 		systemSettings = audioSettingsFromEnvelope(envelope.get("system_audio_settings"))
 		voiceSettings = audioSettingsFromEnvelope(envelope.get("voice_call_settings"))
+		with self._audioRequestLock:
+			systemDeviceId, microphoneDeviceId = self.connection_manager.getAudioDevices()
+			activeSystemDeviceId, activeMicrophoneDeviceId = self.audio.captureDeviceIds
 		error = None
 		errorCode = None
 		if self._publisherOwner not in {None, origin} and self.audio.is_active():
@@ -956,6 +1029,8 @@ class RemoteService:
 				and self.audio.sources == sources
 				and (not sources & AUDIO_SOURCE_SYSTEM or self.audio.settings == systemSettings)
 				and (not sources & AUDIO_SOURCE_VOICE or self.audio.voiceSettings == voiceSettings)
+				and (not sources & AUDIO_SOURCE_SYSTEM or activeSystemDeviceId == systemDeviceId)
+				and (not sources & AUDIO_SOURCE_VOICE or activeMicrophoneDeviceId == microphoneDeviceId)
 			):
 				assert systemSettings is not None or voiceSettings is not None
 				self._activeAudioRequestId = None
@@ -965,6 +1040,8 @@ class RemoteService:
 				with self._audioRequestLock:
 					if epoch != self._audioEpoch:
 						return
+					# A save after the reuse check must win before capture starts.
+					systemDeviceId, microphoneDeviceId = self.connection_manager.getAudioDevices()
 					self._publisherOwner = origin
 					# Bind ownership and worker generation before accepting audio callbacks.
 					self._activeAudioRequestId = requestId
@@ -975,6 +1052,8 @@ class RemoteService:
 						sources=sources,
 						settings=systemSettings or AudioSettings(),
 						voiceSettings=voiceSettings or systemSettings or AudioSettings(),
+						systemDeviceId=systemDeviceId,
+						microphoneDeviceId=microphoneDeviceId,
 					)
 				deadline = time.monotonic() + 6
 				while started and self.audio.state == "starting" and epoch == self._audioEpoch:
@@ -1113,6 +1192,7 @@ class RemoteService:
 				port=AUDIO_PORT,
 				settings=settings,
 				voiceSettings=voiceSettings,
+				microphoneDeviceId=self.connection_manager.getAudioDevices()[1],
 			)
 			if not started:
 				self.audio.notify_state("error", self.audio.error or _("Audio component unavailable."))
@@ -1265,8 +1345,7 @@ class RemoteService:
 			self._audioPeerId = None
 			self._activeAudioRequestId = None
 			self._remoteAudioIncludesSpeech = False
-			self._publisherOutputDevice = None
-			self._publisherOutputDeviceAvailable = False
+			self._publisherNvdaOutputDeviceId = None
 			self._queueAudioTask(self._stopNativeAudio, error)
 
 	def _stopNativeAudio(self, error: str | None) -> None:

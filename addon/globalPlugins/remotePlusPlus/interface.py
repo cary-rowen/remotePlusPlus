@@ -17,6 +17,10 @@ import wx
 import gui
 import ui
 import api
+from logHandler import log
+from pycaw.constants import DEVICE_STATE, EDataFlow
+from pycaw.utils import AudioUtilities
+from utils import mmdevice
 from gui.message import MessageDialog, DefaultButton, ReturnCode, DialogType
 from gui.guiHelper import alwaysCallAfter, BoxSizerHelper
 from gui.nvdaControls import SelectOnFocusSpinCtrl
@@ -56,8 +60,16 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 		voiceSettings = (
 			self.service.connection_manager.getVoiceAudioSettings() if self.service else AudioSettings()
 		)
-		# Translators: The controlling computer selects the audio parameters for the connection.
-		helper.addItem(wx.StaticText(self, label=_("The controlling computer chooses the audio parameters.")))
+		devices = self.service.connection_manager.getAudioDevices() if self.service else (None, None)
+		explanation = wx.StaticText(
+			self,
+			# Translators: Audio transmission quality is selected by the controller; capture devices are local.
+			label=_(
+				"The controller chooses audio transmission settings; each computer chooses its audio devices."
+			),
+		)
+		explanation.Wrap(self.scaleSize(500))
+		helper.addItem(explanation)
 		systemGroupSizer = wx.StaticBoxSizer(
 			wx.VERTICAL,
 			self,
@@ -141,6 +153,48 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 			],
 		)
 		self.voiceFrameChoice.SetSelection(AUDIO_FRAME_VALUES.index(voiceSettings.frameMs))
+		deviceGroupSizer = wx.StaticBoxSizer(wx.VERTICAL, self, label=_("Local audio devices"))
+		deviceGroup = BoxSizerHelper(self, sizer=deviceGroupSizer)
+		helper.addItem(deviceGroup)
+		try:
+			outputs = list(mmdevice.getOutputDevices(includeDefault=True))
+		except Exception:
+			log.error("Could not list audio output devices", exc_info=True)
+			outputs = []
+		self.systemDeviceIds = [None, *(device.id for device in outputs[1:])]
+		outputNames = [outputs[0].friendlyName if outputs else _("Default output device")]
+		outputNames.extend(device.friendlyName for device in outputs[1:])
+		if devices[0] is not None and devices[0] not in self.systemDeviceIds:
+			self.systemDeviceIds.append(devices[0])
+			outputNames.append(_("Selected device (unavailable)"))
+		self.systemDeviceChoice = deviceGroup.addLabeledControl(
+			_("System sound &device:"),
+			wx.Choice,
+			choices=outputNames,
+		)
+		self.systemDeviceChoice.SetSelection(self.systemDeviceIds.index(devices[0]))
+		try:
+			microphones = AudioUtilities.GetAllDevices(
+				data_flow=EDataFlow.eCapture.value,
+				device_state=DEVICE_STATE.ACTIVE.value,
+			)
+		except Exception:
+			log.error("Could not list microphone devices", exc_info=True)
+			microphones = []
+		self.microphoneIds = [None, *(device.id for device in microphones if device is not None)]
+		microphoneNames = [_("Default microphone")]
+		microphoneNames.extend(
+			device.FriendlyName or device.id for device in microphones if device is not None
+		)
+		if devices[1] is not None and devices[1] not in self.microphoneIds:
+			self.microphoneIds.append(devices[1])
+			microphoneNames.append(_("Selected device (unavailable)"))
+		self.microphoneChoice = deviceGroup.addLabeledControl(
+			_("&Microphone:"),
+			wx.Choice,
+			choices=microphoneNames,
+		)
+		self.microphoneChoice.SetSelection(self.microphoneIds.index(devices[1]))
 		description = wx.StaticText(
 			self,
 			# Translators: Explanation below the remote audio preferences.
@@ -148,7 +202,7 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 				"Audio uses Opus at 48 kHz. Lower bitrate uses less bandwidth. Balanced mode reduces packet "
 				"overhead but adds delay. More buffering can reduce interruptions but delays playback; "
 				"minimum buffering does not mean zero latency. "
-				"Apply changes to restart active listening; audio stays off if it is not already enabled.",
+				"Apply changes to restart active audio; audio stays off if it is not already enabled.",
 			),
 		)
 		description.Wrap(self.scaleSize(500))
@@ -169,14 +223,13 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 			AUDIO_CHANNELS[self.voiceChannelsChoice.GetSelection()],
 			AUDIO_FRAME_VALUES[self.voiceFrameChoice.GetSelection()],
 		)
-		manager = self.service.connection_manager
-		if settings == manager.getAudioSettings() and voiceSettings == manager.getVoiceAudioSettings():
-			return
-		if not manager.setAudioSettings(settings, voiceSettings):
+		devices = (
+			self.systemDeviceIds[self.systemDeviceChoice.GetSelection()],
+			self.microphoneIds[self.microphoneChoice.GetSelection()],
+		)
+		if not self.service.saveAudioPreferences(settings, voiceSettings, devices):
 			# Translators: Settings could not be saved; the current audio continues unchanged.
 			_showError(self, _("Unable to save audio settings. The previous settings are still in use."))
-			return
-		self.service.applyAudioSettings()
 
 
 def generate_key() -> str:

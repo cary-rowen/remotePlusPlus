@@ -9,6 +9,7 @@ from comtypes import COMMETHOD, GUID, HRESULT, IUnknown
 from pycaw.api.audioclient import IAudioClient
 from pycaw.api.audioclient.depend import WAVEFORMATEX
 from pycaw.api.mmdeviceapi import IMMDeviceEnumerator
+from pycaw.constants import DEVICE_STATE
 import time
 from typing import Any
 from threading import Event
@@ -33,6 +34,13 @@ class IAudioCaptureClient(IUnknown):
 		COMMETHOD([], HRESULT, "ReleaseBuffer", (["in"], c_uint32, "frames")),
 		COMMETHOD([], HRESULT, "GetNextPacketSize", (["out"], POINTER(c_uint32), "frames")),
 	]
+
+
+class _SelectedEndpointUnavailable(OSError):
+	pass
+
+
+_AUDCLNT_E_DEVICE_INVALIDATED = 0x88890004
 
 
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -63,6 +71,15 @@ def getDeviceId(device: Any) -> str:
 		_coTaskMemFree(pointer)
 
 
+def getDefaultDeviceId(flow: int) -> str:
+	enumerator = comtypes.CoCreateInstance(
+		GUID("{BCDE0395-E52F-467C-8E3D-C4579291692E}"),
+		interface=IMMDeviceEnumerator,
+		clsctx=comtypes.CLSCTX_INPROC_SERVER,
+	)
+	return getDeviceId(enumerator.GetDefaultAudioEndpoint(flow, 0))
+
+
 def capture(
 	stop: Event,
 	loopback: bool,
@@ -70,9 +87,23 @@ def capture(
 	channels: int,
 	ready: Callable[[], None],
 	received: Callable[[bytes, bool], None],
+	deviceId: str | None,
+	opened: Callable[[str], None],
 ) -> None:
 	with comApartment():
-		_capture(stop, loopback, rate, channels, ready, received)
+		try:
+			_capture(stop, loopback, rate, channels, ready, received, deviceId, opened)
+		except (_SelectedEndpointUnavailable, comtypes.COMError) as error:
+			if deviceId is None or stop.is_set():
+				raise
+			if (
+				isinstance(error, comtypes.COMError)
+				and error.hresult & 0xFFFFFFFF != _AUDCLNT_E_DEVICE_INVALIDATED
+			):
+				raise
+			received(b"", True)
+			opened("")
+			_capture(stop, loopback, rate, channels, ready, received, None, opened)
 
 
 def _capture(
@@ -82,6 +113,8 @@ def _capture(
 	channels: int,
 	ready: Callable[[], None],
 	received: Callable[[bytes, bool], None],
+	selectedDeviceId: str | None,
+	opened: Callable[[str], None],
 ) -> None:
 	enumerator: Any = None
 	device: Any = None
@@ -96,7 +129,17 @@ def _capture(
 			clsctx=comtypes.CLSCTX_INPROC_SERVER,
 		)
 		flow = 0 if loopback else 1
-		device = enumerator.GetDefaultAudioEndpoint(flow, 0)
+		if selectedDeviceId is not None:
+			try:
+				device = enumerator.GetDevice(selectedDeviceId)
+			except comtypes.COMError as error:
+				raise _SelectedEndpointUnavailable("Selected audio endpoint is unavailable") from error
+		else:
+			device = enumerator.GetDefaultAudioEndpoint(flow, 0)
+		if device.GetState() != DEVICE_STATE.ACTIVE.value:
+			if selectedDeviceId is not None:
+				raise _SelectedEndpointUnavailable("Selected audio endpoint is inactive")
+			raise OSError("Default audio endpoint is inactive")
 		deviceId = getDeviceId(device)
 		client = device.Activate(IAudioClient._iid_, comtypes.CLSCTX_ALL, None).QueryInterface(IAudioClient)
 		format = WAVEFORMATEX()
@@ -118,6 +161,7 @@ def _capture(
 		client.SetEventHandle(event)
 		client.Start()
 		started = True
+		opened(deviceId)
 		ready()
 		nextDeviceCheck = time.monotonic() + 1
 		while not stop.is_set():
@@ -125,8 +169,11 @@ def _capture(
 			if result == 0xFFFFFFFF:
 				raise ctypes.WinError(ctypes.get_last_error())
 			if time.monotonic() >= nextDeviceCheck:
-				if getDeviceId(enumerator.GetDefaultAudioEndpoint(flow, 0)) != deviceId:
-					raise OSError("Default capture endpoint changed; restart audio to follow it")
+				if selectedDeviceId is None:
+					if getDeviceId(enumerator.GetDefaultAudioEndpoint(flow, 0)) != deviceId:
+						raise OSError("Default capture endpoint changed; restart audio to follow it")
+				elif device.GetState() != DEVICE_STATE.ACTIVE.value:
+					raise _SelectedEndpointUnavailable("Selected audio endpoint became unavailable")
 				nextDeviceCheck = time.monotonic() + 1
 			while not stop.is_set() and reader.GetNextPacketSize():
 				data, frames, packetFlags, _, _ = reader.GetBuffer()

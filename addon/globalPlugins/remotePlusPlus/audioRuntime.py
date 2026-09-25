@@ -95,10 +95,12 @@ class AudioRuntime:
 		settings: Any,
 		muted: bool,
 		stream: str = STREAM_SYSTEM_AUDIO,
+		captureDeviceId: str | None = None,
 	) -> None:
 		self.host, self.port, self.key = host, port, key
 		self.role = role
 		self.stream = stream
+		self.captureDeviceId = captureDeviceId
 		self.rate = RATE
 		self.channels = settings.channels
 		self.bitrateKbps = settings.bitrateKbps
@@ -345,6 +347,8 @@ class AudioRuntime:
 						self.channels,
 						self._ready,
 						partial(self._captured, source),
+						self.captureDeviceId,
+						lambda deviceId: event({"type": "capture_device", "device_id": deviceId}),
 					)
 			else:
 				self._startWorker(self._play)

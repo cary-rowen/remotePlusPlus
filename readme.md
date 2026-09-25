@@ -29,9 +29,9 @@ Audio is off by default. The controller can enable it from the Remote Access men
 
 ### Listen to remote system sounds
 
-This option sends the controlled computer's Windows default output to the controller.
+This option sends sound from the controlled computer's selected system sound device to the controller. The Windows default output is selected initially.
 
-When enabled, Remote++ pauses the controlled computer's normal NVDA Remote speech feedback so that the same speech is not played twice through the Remote speech channel and system audio. Speech feedback resumes when listening stops, audio is interrupted, or no valid audio is received.
+When the selected device also captures NVDA speech, Remote++ pauses the controlled computer's normal NVDA Remote speech feedback so that the same speech is not played twice. Speech feedback resumes when listening stops, audio is interrupted, or no valid audio is received.
 
 ### Voice call
 
@@ -42,7 +42,7 @@ A voice call provides two independent audio directions:
 
 Each computer plays the other computer's microphone audio through its default output device. System audio and voice call can be enabled together, and each audio category has its own settings.
 
-Audio currently uses the Windows default output and microphone devices; device selection is not available. If a default device is disconnected or changes, enable the audio feature again.
+Each computer can select its own microphone in **NVDA Settings -> Remote++**. The controlled computer can also select which local output device to share. If a selected device becomes unavailable, capture switches to the Windows default device. If the default device changes during an active stream, enable the audio feature again.
 
 ### Audio settings
 
@@ -55,7 +55,7 @@ In **NVDA Settings -> Remote++**, system audio and voice call each have a separa
 
 Audio is encoded with Opus at a fixed 48 kHz sample rate. The default configuration is stereo, 96 kbps, and 10 ms packets. Minimum buffering does not mean zero latency: capture, packet collection, encoding, the network, and playback all add delay.
 
-These settings apply to all connections, are stored in the connection manager preferences, and are independent of NVDA configuration. Saving or applying changes briefly restarts audio on active connections.
+The controller chooses transmission settings; each computer chooses its own capture devices. These preferences apply to all connections, are stored in the connection manager preferences, and are independent of NVDA configuration. Saving or applying changes briefly restarts active audio.
 
 TeleNVDA and older NVDA Remote connections do not expose these controls. An older Remote++ version can continue normal Remote control but cannot stream audio. One controller can own audio at a time, and the Remote channel can contain only one controlled computer. If another controlled computer joins, audio stops. The audio protocol is not encrypted; use a trusted network or VPN.
 

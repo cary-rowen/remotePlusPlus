@@ -58,6 +58,26 @@ class SettingsPanelTests(unittest.TestCase):
 				"_remoteClient": SimpleNamespace(configuration=Mock()),
 				"_remoteClient.connectionInfo": SimpleNamespace(ConnectionInfo=Mock(), ConnectionMode=Mock()),
 				"_remoteClient.protocol": SimpleNamespace(addressToHostPort=Mock()),
+				"pycaw.constants": SimpleNamespace(
+					DEVICE_STATE=SimpleNamespace(ACTIVE=SimpleNamespace(value=1)),
+					EDataFlow=SimpleNamespace(eCapture=SimpleNamespace(value=1)),
+				),
+				"pycaw.utils": SimpleNamespace(
+					AudioUtilities=SimpleNamespace(
+						GetAllDevices=lambda **kwargs: [
+							SimpleNamespace(id="microphone", FriendlyName="Microphone")
+						],
+					),
+				),
+				"utils": SimpleNamespace(
+					mmdevice=SimpleNamespace(
+						getOutputDevices=lambda **kwargs: [
+							SimpleNamespace(id="default", friendlyName="Default output device"),
+							SimpleNamespace(id="speakers", friendlyName="Speakers"),
+						],
+					),
+				),
+				"logHandler": SimpleNamespace(log=Mock()),
 			},
 		):
 			module.__dict__["_"] = lambda text: text
@@ -65,8 +85,8 @@ class SettingsPanelTests(unittest.TestCase):
 		manager = Mock()
 		manager.getAudioSettings.return_value = AudioSettings()
 		manager.getVoiceAudioSettings.return_value = AudioSettings()
-		manager.setAudioSettings.return_value = True
-		service = SimpleNamespace(connection_manager=manager, applyAudioSettings=Mock())
+		manager.getAudioDevices.return_value = (None, None)
+		service = SimpleNamespace(connection_manager=manager, saveAudioPreferences=Mock(return_value=True))
 		module.RemotePlusPlusSettingsPanel.service = service
 		panel = module.RemotePlusPlusSettingsPanel(frame)
 		panel.makeSettings(wx.BoxSizer(wx.VERTICAL))
@@ -74,6 +94,8 @@ class SettingsPanelTests(unittest.TestCase):
 		self.assertEqual(panel.bitrateChoice.GetCount(), 3)
 		self.assertEqual(panel.channelsChoice.GetCount(), 2)
 		self.assertEqual(panel.frameChoice.GetCount(), 2)
+		self.assertEqual(panel.systemDeviceChoice.GetCount(), 2)
+		self.assertEqual(panel.microphoneChoice.GetCount(), 2)
 		self.assertIn("(default)", panel.bufferChoice.GetStringSelection())
 		self.assertIn("(default)", panel.bitrateChoice.GetStringSelection())
 		self.assertIn("(default)", panel.channelsChoice.GetStringSelection())
@@ -82,9 +104,9 @@ class SettingsPanelTests(unittest.TestCase):
 		panel.bitrateChoice.SetSelection(0)
 		panel.channelsChoice.SetSelection(0)
 		panel.frameChoice.SetSelection(1)
-		manager.setAudioSettings.assert_not_called()
+		service.saveAudioPreferences.assert_not_called()
 		panel.Destroy()  # Cancel/discard has no persistence or audio side effects.
-		service.applyAudioSettings.assert_not_called()
+		service.saveAudioPreferences.assert_not_called()
 
 		panel = module.RemotePlusPlusSettingsPanel(frame)
 		panel.makeSettings(wx.BoxSizer(wx.VERTICAL))
@@ -93,11 +115,30 @@ class SettingsPanelTests(unittest.TestCase):
 		panel.channelsChoice.SetSelection(0)
 		panel.frameChoice.SetSelection(1)
 		panel.onSave()
-		manager.setAudioSettings.assert_called_once_with(AudioSettings(80, 64, 1, 20), AudioSettings())
-		service.applyAudioSettings.assert_called_once()
-		manager.getAudioSettings.return_value = AudioSettings(80, 64, 1, 20)
+		service.saveAudioPreferences.assert_called_once_with(
+			AudioSettings(80, 64, 1, 20),
+			AudioSettings(),
+			(None, None),
+		)
 		panel.onSave()
-		service.applyAudioSettings.assert_called_once()  # Repeated Apply is a no-op.
+		self.assertEqual(service.saveAudioPreferences.call_count, 2)
+		panel.Destroy()
+
+		panel = module.RemotePlusPlusSettingsPanel(frame)
+		panel.makeSettings(wx.BoxSizer(wx.VERTICAL))
+		panel.systemDeviceChoice.SetSelection(1)
+		panel.microphoneChoice.SetSelection(1)
+		panel.onSave()
+		service.saveAudioPreferences.assert_called_with(
+			AudioSettings(), AudioSettings(), ("speakers", "microphone")
+		)
+		panel.Destroy()
+
+		manager.getAudioDevices.return_value = ("missing-output", "missing-input")
+		panel = module.RemotePlusPlusSettingsPanel(frame)
+		panel.makeSettings(wx.BoxSizer(wx.VERTICAL))
+		self.assertEqual(panel.systemDeviceChoice.GetStringSelection(), "Selected device (unavailable)")
+		self.assertEqual(panel.microphoneChoice.GetStringSelection(), "Selected device (unavailable)")
 		panel.Destroy()
 
 

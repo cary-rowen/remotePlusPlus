@@ -46,6 +46,7 @@ def loadService():
 		{
 			"remote_test": SimpleNamespace(),
 			"remote_test.audio": audioModule,
+			"remote_test.audioCapture": SimpleNamespace(getDefaultDeviceId=lambda flow: "speakers"),
 			"addonHandler": SimpleNamespace(initTranslation=lambda: None),
 			"logHandler": SimpleNamespace(log=logging.getLogger(__name__)),
 			"globalVars": SimpleNamespace(appArgs=SimpleNamespace(configPath="unused")),
@@ -129,6 +130,14 @@ class FakeAudio:
 		self.events = []
 		self.generation = 0
 		self.muted = False
+		self.systemCaptureDeviceId = None
+		self.startKwargs = None
+
+	@property
+	def captureDeviceIds(self):
+		if self.state != "on" or self.startKwargs is None:
+			return None, None
+		return self.startKwargs.get("systemDeviceId"), self.startKwargs.get("microphoneDeviceId")
 
 	def setMuted(self, muted):
 		self.muted = muted
@@ -138,6 +147,7 @@ class FakeAudio:
 		self.state = "off"
 		self.sources = 0
 		self.role = None
+		self.systemCaptureDeviceId = None
 		self.notify_state("off")
 
 	def terminate(self):
@@ -150,6 +160,8 @@ class FakeAudio:
 		self.settings = settings
 		self.voiceSettings = voiceSettings or settings
 		self.sources = sources
+		self.systemCaptureDeviceId = "speakers" if mode == "slave" and sources & 1 else None
+		self.startKwargs = kwargs
 		self.starts.append((host, mode, key, sources, settings))
 		self.notify_state("on")
 		return True
@@ -231,7 +243,7 @@ class AudioNegotiationTests(unittest.TestCase):
 	def testPreferencesPersistWithoutStartingAudioAndRollbackOnSaveFailure(self):
 		manager = self.service.connection_manager
 		settings = AudioSettings(80, 64, 1, 20)
-		self.assertTrue(manager.setAudioSettings(settings))
+		self.assertTrue(manager.setAudioSettings(settings, devices=("speakers", "microphone")))
 		self.service.applyAudioSettings()
 		self.flush()
 		self.assertFalse(self.service.audio.starts)
@@ -239,10 +251,161 @@ class AudioNegotiationTests(unittest.TestCase):
 		manager.data = manager._getDefaultData()
 		manager.loadConfig()
 		self.assertEqual(manager.getAudioSettings(), settings)
+		self.assertEqual(manager.getAudioDevices(), ("speakers", "microphone"))
+		with (
+			patch.object(manager, "saveConfig") as saveConfig,
+			patch.object(self.service, "applyAudioSettings") as apply,
+		):
+			self.assertTrue(self.service.saveAudioPreferences(settings, settings, ("speakers", "microphone")))
+			saveConfig.assert_not_called()
+			apply.assert_not_called()
 		with patch.object(serviceModule.os, "replace", side_effect=OSError("read-only")):
-			with self.assertLogs(level="ERROR"):
-				self.assertFalse(manager.setAudioSettings(AudioSettings()))
+			with (
+				self.assertLogs(level="ERROR"),
+				patch.object(self.service, "applyAudioSettings") as apply,
+			):
+				self.assertFalse(
+					self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), (None, None))
+				)
+				apply.assert_not_called()
 		self.assertEqual(manager.getAudioSettings(), settings)
+		self.assertEqual(manager.getAudioDevices(), ("speakers", "microphone"))
+
+	def testDeviceChangeRequestsRebuildOnlyForActiveCapture(self):
+		self.info.mode = "slave"
+		self.service._handleAudioRequest(
+			makeEnvelope("request", request_id="active", sources=3), 7, self.service._audioEpoch
+		)
+		self.sent.reset_mock()
+		self.assertTrue(
+			self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), ("headset", None))
+		)
+		self.flush()
+		self.assertEqual(
+			self.sent.call_args.kwargs[audioModule.AUDIO_ENVELOPE_KEY]["kind"],
+			"device_changed",
+		)
+		self.sent.reset_mock()
+		self.assertTrue(
+			self.service.saveAudioPreferences(
+				AudioSettings(80, 64, 1, 20), AudioSettings(), ("headset", None)
+			)
+		)
+		self.flush()
+		self.sent.assert_not_called()
+		self.service.stopAudio()
+		self.flush()
+		self.sent.reset_mock()
+		self.assertTrue(
+			self.service.saveAudioPreferences(
+				AudioSettings(80, 64, 1, 20), AudioSettings(), (None, "microphone")
+			)
+		)
+		self.flush()
+		self.sent.assert_not_called()
+
+	def testControllerRebuildsOnDeviceChangeFromCurrentFollower(self):
+		requestId = self.request(3)
+		self.respond(requestId, 3)
+		self.service._handleAudioMessage(
+			origin=8,
+			**{audioModule.AUDIO_ENVELOPE_KEY: audioModule.make_audio_envelope("device_changed")},
+		)
+		self.assertFalse(self.service.isAudioRequestPending())
+		self.service._handleAudioMessage(
+			origin=7,
+			**{audioModule.AUDIO_ENVELOPE_KEY: audioModule.make_audio_envelope("device_changed")},
+		)
+		self.assertTrue(self.service.isAudioRequestPending())
+		self.flush()
+		self.assertNotEqual(next(iter(self.service._pendingAudioRequests)), requestId)
+
+	def testPublisherReopensCaptureWhenSavedDeviceChanges(self):
+		self.info.mode = "slave"
+		request = makeEnvelope("request", request_id="active", sources=3)
+		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
+		self.assertEqual(len(self.service.audio.starts), 1)
+		self.service.connection_manager.setAudioSettings(AudioSettings(), devices=("headset", "microphone"))
+		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
+		self.assertEqual(len(self.service.audio.starts), 2)
+		self.assertEqual(self.service.audio.captureDeviceIds, ("headset", "microphone"))
+		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
+		self.assertEqual(len(self.service.audio.starts), 2)
+		self.service.connection_manager.setAudioSettings(AudioSettings(), devices=("headset", "microphone2"))
+		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
+		self.assertEqual(len(self.service.audio.starts), 3)
+		self.assertEqual(self.service.audio.captureDeviceIds, ("headset", "microphone2"))
+
+	def testDeviceSaveBeforePublisherOwnsRequestUsesLatestSelection(self):
+		self.info.mode = "slave"
+		stopping = threading.Event()
+		continueStop = threading.Event()
+		originalStop = self.service.audio.stop
+
+		def pausedStop():
+			stopping.set()
+			if not continueStop.wait(2):
+				raise TimeoutError("publisher stop was not released")
+			originalStop()
+
+		with patch.object(self.service.audio, "stop", side_effect=pausedStop):
+			request = makeEnvelope("request", request_id="active", sources=1)
+			requestTask = self.service._audioWorker.submit(
+				self.service._handleAudioRequest, request, 7, self.service._audioEpoch
+			)
+			try:
+				self.assertTrue(stopping.wait(2))
+				self.assertTrue(
+					self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), ("headset", None))
+				)
+			finally:
+				continueStop.set()
+			requestTask.result(timeout=2)
+		self.assertEqual(self.service.audio.captureDeviceIds, ("headset", None))
+
+	def testDeviceSaveDuringPublisherStartRequestsRebuild(self):
+		self.info.mode = "slave"
+		started = threading.Event()
+		continueStart = threading.Event()
+		originalStart = self.service.audio.start
+
+		def pausedStart(*args, **kwargs):
+			started.set()
+			if not continueStart.wait(2):
+				raise TimeoutError("publisher start was not released")
+			return originalStart(*args, **kwargs)
+
+		with patch.object(self.service.audio, "start", side_effect=pausedStart):
+			request = makeEnvelope("request", request_id="active", sources=1)
+			requestTask = self.service._audioWorker.submit(
+				self.service._handleAudioRequest, request, 7, self.service._audioEpoch
+			)
+			try:
+				self.assertTrue(started.wait(2))
+				saveResult = []
+				saveStarted = threading.Event()
+
+				def save():
+					saveStarted.set()
+					saveResult.append(
+						self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), ("headset", None))
+					)
+
+				saveThread = threading.Thread(target=save)
+				saveThread.start()
+				self.assertTrue(saveStarted.wait(2))
+			finally:
+				continueStart.set()
+			requestTask.result(timeout=2)
+			saveThread.join(2)
+			self.assertFalse(saveThread.is_alive())
+		self.assertEqual(saveResult, [True])
+		self.assertEqual(self.service.audio.captureDeviceIds, (None, None))
+		self.flush()
+		self.assertIn(
+			"device_changed",
+			[call.kwargs[audioModule.AUDIO_ENVELOPE_KEY]["kind"] for call in self.sent.call_args_list],
+		)
 
 	def testMissingNegotiatedFormatCancelsWithoutOverwritingPreference(self):
 		settings = AudioSettings(20, 64, 1, 20)
@@ -776,6 +939,38 @@ class AudioNegotiationTests(unittest.TestCase):
 			[call.args[0][:2] for call in callback.call_args_list],
 		)
 
+	def testPublisherToneAndWaveFollowCaptureFallback(self):
+		self.respond(self.request(), includes_nvda_speech=False)
+		with patch.object(serviceModule.globalVars.appArgs, "configPath", self.directory.name):
+			publisher = serviceModule.RemoteService()
+		self.addCleanup(publisher.terminate)
+		publisher.audio = FakeAudio(publisher._onNativeAudioState)
+		publisher.getCurrentConnectionInfo = Mock(
+			return_value=SimpleNamespace(mode="slave", hostname="remote.example", key="room"),
+		)
+		publisher.getClient = self.service.getClient
+		publisher._registerAudioTransport(self.transport)
+		publisher._handleAudioRequest(
+			makeEnvelope("request", request_id="active", sources=1), 7, publisher._audioEpoch
+		)
+
+		for captureDeviceId, included in (("headset", False), ("speakers", True)):
+			publisher.audio.systemCaptureDeviceId = captureDeviceId
+			for kind, handler, payload in (
+				("tone", self.localMachine.beep, {"hz": 440, "length": 30}),
+				("wave", self.localMachine.playWave, {"fileName": "tone.wav"}),
+			):
+				handler.reset_mock()
+				self.sent.reset_mock()
+				self.transport.send(kind, **payload)
+				forwarded = self.sent.call_args.kwargs
+				self.assertIs(forwarded["remotePlusPlus_speechInAudio"], included)
+				self.transport.inboundHandlers[kind].notify(origin=7, **forwarded)
+				self.assertEqual(handler.called, not included)
+		self.sent.reset_mock()
+		publisher._audioWorker.submit(self.transport.send, "tone", hz=440, length=30).result(timeout=2)
+		self.assertIs(self.sent.call_args.kwargs["remotePlusPlus_speechInAudio"], True)
+
 	def testPublisherExplicitOutputDeviceNeverClaimsSpeechCoverage(self):
 		self.info.mode = "slave"
 		serviceModule.config.conf["audio"]["outputDevice"] = "headset"
@@ -787,10 +982,63 @@ class AudioNegotiationTests(unittest.TestCase):
 	def testPublisherMissingOutputDeviceUsesDefaultSpeechCoverage(self):
 		self.info.mode = "slave"
 		serviceModule.config.conf["audio"]["outputDevice"] = "missing"
+		self.service.audio.systemCaptureDeviceId = "speakers"
 		with patch.object(serviceModule.mmdevice, "getOutputDevices", return_value=()) as getOutputDevices:
 			self.assertTrue(self.service._publisherIncludesSpeech(1))
 			self.assertTrue(self.service._publisherIncludesSpeech(1))
-		getOutputDevices.assert_called_once_with()
+		self.assertEqual(getOutputDevices.call_count, 2)
+
+	def testPublisherExplicitOutputFollowsDeviceAvailability(self):
+		self.info.mode = "slave"
+		serviceModule.config.conf["audio"]["outputDevice"] = "headset"
+		available = True
+		with patch.object(
+			serviceModule.mmdevice,
+			"getOutputDevices",
+			side_effect=lambda: (SimpleNamespace(id="headset"),) if available else (),
+		):
+			request = makeEnvelope("request", request_id="active", sources=1)
+			self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
+			for captureDeviceId, present in (("headset", True), ("speakers", False), ("headset", True)):
+				available = present
+				self.service.audio.systemCaptureDeviceId = captureDeviceId
+				for kind, payload in (
+					("speak", {"sequence": ["feedback"]}),
+					("tone", {"hz": 440, "length": 30}),
+					("wave", {"fileName": "tone.wav"}),
+				):
+					self.transport.send(kind, **payload)
+					self.assertIs(
+						self.service._originalAudioSend.call_args.kwargs["remotePlusPlus_speechInAudio"],
+						True,
+					)
+
+	def testSpeechCoverageFollowsActualCaptureDeviceAfterFallback(self):
+		self.info.mode = "slave"
+		self.service.audio.systemCaptureDeviceId = "headset"
+		serviceModule.config.conf["audio"]["outputDevice"] = "headset"
+		self.assertTrue(self.service._publisherIncludesSpeech(1))
+		self.service.audio.systemCaptureDeviceId = "speakers"
+		self.assertFalse(self.service._publisherIncludesSpeech(1))
+		serviceModule.config.conf["audio"]["outputDevice"] = "default"
+		self.assertTrue(self.service._publisherIncludesSpeech(1))
+
+	def testSpeechCoverageFollowsDefaultOutputChangesAndQueryFailure(self):
+		self.info.mode = "slave"
+		request = makeEnvelope("request", request_id="active", sources=1)
+		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
+		with patch.object(
+			serviceModule,
+			"getDefaultDeviceId",
+			side_effect=("speakers", "headset", OSError("device unavailable"), "speakers"),
+		) as getDefaultDeviceId:
+			for expected in (True, False, False, True):
+				self.transport.send("speak", sequence=["feedback"])
+				self.assertIs(
+					self.service._originalAudioSend.call_args.kwargs["remotePlusPlus_speechInAudio"],
+					expected,
+				)
+		self.assertEqual(getDefaultDeviceId.call_count, 4)
 
 	def testReconnectSnapshotReplacesStaleCoreFollowers(self):
 		self.respond(self.request(), includes_nvda_speech=True)

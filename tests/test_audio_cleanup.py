@@ -1,6 +1,6 @@
 """Resource ownership and shutdown regressions without network or device changes."""
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import ctypes
 import importlib
 import sys
@@ -437,6 +437,95 @@ class DeviceIdTests(unittest.TestCase):
 						self.assertEqual(self.capture.getDeviceId(object()), "endpoint-id")
 					free.assert_called_once()
 					self.assertEqual(ctypes.cast(free.call_args.args[0], ctypes.c_void_p).value, allocated[0])
+
+	def testSelectedDeviceFailureFallsBackAndClearsBufferedSamples(self):
+		failures = (
+			self.capture._SelectedEndpointUnavailable("selected device disconnected"),
+			self.capture.comtypes.COMError(ctypes.c_int32(0x88890004).value, "device invalidated", None),
+		)
+		for failure in failures:
+			with self.subTest(error=type(failure).__name__):
+				attempts = []
+				received = Mock()
+				opened = Mock()
+
+				def run(stop, loopback, rate, channels, ready, receive, deviceId, onOpened):
+					attempts.append(deviceId)
+					if deviceId is not None:
+						raise failure
+					onOpened("default-device")
+
+				with (
+					patch.object(self.capture, "comApartment", return_value=nullcontext()),
+					patch.object(self.capture, "_capture", side_effect=run),
+				):
+					self.capture.capture(
+						threading.Event(), True, 48000, 2, Mock(), received, "selected", opened
+					)
+				self.assertEqual(attempts, ["selected", None])
+				received.assert_called_once_with(b"", True)
+				self.assertEqual([call.args[0] for call in opened.call_args_list], ["", "default-device"])
+
+	def testUnrelatedCaptureFailureDoesNotSwitchDevices(self):
+		failures = (
+			OSError("invalid capture buffer"),
+			self.capture.comtypes.COMError(-1, "capture failed", None),
+		)
+		for failure in failures:
+			with self.subTest(error=type(failure).__name__):
+				received = Mock()
+				opened = Mock()
+				with (
+					patch.object(self.capture, "comApartment", return_value=nullcontext()),
+					patch.object(self.capture, "_capture", side_effect=failure) as attempt,
+					self.assertRaises(type(failure)) as raised,
+				):
+					self.capture.capture(
+						threading.Event(), True, 48000, 2, Mock(), received, "selected", opened
+					)
+				self.assertIs(raised.exception, failure)
+				attempt.assert_called_once()
+				received.assert_not_called()
+				opened.assert_not_called()
+
+	def testMissingOrInactiveSelectedEndpointAllowsFallback(self):
+		for missing in (False, True):
+			with self.subTest(missing=missing):
+				device = Mock()
+				device.GetState.return_value = 2
+				enumerator = Mock()
+				enumerator.GetDevice.return_value = device
+				if missing:
+					enumerator.GetDevice.side_effect = self.capture.comtypes.COMError(-1, "not found", None)
+				with (
+					patch.object(self.capture.comtypes, "CoCreateInstance", return_value=enumerator),
+					self.assertRaises(self.capture._SelectedEndpointUnavailable),
+				):
+					self.capture._capture(
+						threading.Event(), True, 48000, 2, Mock(), Mock(), "selected", Mock()
+					)
+				device.Activate.assert_not_called()
+
+	def testSelectedEndpointUsesSavedId(self):
+		device = Mock()
+		device.GetState.return_value = 1
+		client = device.Activate.return_value.QueryInterface.return_value
+		client.GetBufferSize.return_value = 1024
+		enumerator = Mock()
+		enumerator.GetDevice.return_value = device
+		stop = threading.Event()
+		stop.set()
+		opened = Mock()
+		with (
+			patch.object(self.capture.comtypes, "CoCreateInstance", return_value=enumerator),
+			patch.object(self.capture, "getDeviceId", return_value="selected"),
+			patch.object(self.capture.kernel32, "CreateEventW", return_value=1),
+			patch.object(self.capture.kernel32, "CloseHandle"),
+		):
+			self.capture._capture(stop, True, 48000, 2, Mock(), Mock(), "selected", opened)
+		enumerator.GetDevice.assert_called_once_with("selected")
+		enumerator.GetDefaultAudioEndpoint.assert_not_called()
+		opened.assert_called_once_with("selected")
 
 
 if __name__ == "__main__":

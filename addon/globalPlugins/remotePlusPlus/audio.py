@@ -207,7 +207,7 @@ def parse_audio_envelope(value: Any) -> dict[str, Any] | None:
 	if type(value.get("version")) is not int or value["version"] != AUDIO_PROTOCOL_VERSION:
 		return None
 	kind = value.get("kind")
-	if kind not in ("hello", "request", "response"):
+	if kind not in ("hello", "request", "response", "device_changed"):
 		return None
 	request_id = value.get("request_id")
 	if request_id is not None and (not isinstance(request_id, str) or not request_id or len(request_id) > 80):
@@ -278,6 +278,7 @@ class AudioService:
 		self._role: str | None = None
 		self._sources = 0
 		self._isReceiving = False
+		self._systemCaptureDeviceId: str | None = None
 		self._muted = False
 		self.settings = AudioSettings()
 		self.voiceSettings = AudioSettings()
@@ -321,6 +322,21 @@ class AudioService:
 		"""Whether the system-audio subscriber is receiving valid PCM."""
 		with self._lock:
 			return self._state == "on" and self._isReceiving
+
+	@property
+	def systemCaptureDeviceId(self) -> str | None:
+		with self._lock:
+			return self._systemCaptureDeviceId
+
+	@property
+	def captureDeviceIds(self) -> tuple[str | None, str | None]:
+		with self._lock:
+			system = self._runtimes.get(STREAM_SYSTEM_AUDIO)
+			microphone = self._runtimes.get(STREAM_VOICE_CONTROLLED_TO_CONTROLLER)
+			return (
+				system.captureDeviceId if system is not None else None,
+				microphone.captureDeviceId if microphone is not None else None,
+			)
 
 	def set_state_callback(self, callback: Callable[[AudioStateEvent], None]) -> None:
 		with self._lock:
@@ -393,6 +409,8 @@ class AudioService:
 		port: int = AUDIO_PORT,
 		settings: AudioSettings = AudioSettings(),
 		voiceSettings: AudioSettings | None = None,
+		systemDeviceId: str | None = None,
+		microphoneDeviceId: str | None = None,
 	) -> bool:
 		failedRuntimes = ()
 		with self._lock:
@@ -428,6 +446,11 @@ class AudioService:
 			runtimes: dict[str, AudioRuntime] = {}
 			try:
 				for stream, runtimeRole, captureSources, streamSettings in specs:
+					captureDeviceId = None
+					if runtimeRole == "publisher":
+						captureDeviceId = (
+							systemDeviceId if stream == STREAM_SYSTEM_AUDIO else microphoneDeviceId
+						)
 					runtime = createAudioRuntime(
 						host.strip(),
 						port,
@@ -437,6 +460,7 @@ class AudioService:
 						streamSettings,
 						self._muted,
 						stream,
+						captureDeviceId,
 					)
 					runtimes[stream] = runtime
 			except Exception:
@@ -449,6 +473,7 @@ class AudioService:
 				self._runtime = next(iter(runtimes.values()), None)
 				self._generation = generation
 				self._role, self._sources = role, normalized_sources
+				self._systemCaptureDeviceId = None
 				self.settings = settings
 				self.voiceSettings = voiceSettings
 				self._ready = Event()
@@ -512,6 +537,7 @@ class AudioService:
 			self._runtime = None
 			self._role = None
 			self._sources = 0
+			self._systemCaptureDeviceId = None
 			self._ready.set()
 			notification = self._set_state_locked("off", None)
 		for runtime in runtimes:
@@ -535,7 +561,11 @@ class AudioService:
 		return self.state in {"starting", "on"}
 
 	def _event(self, event: dict[str, Any], generation: int, stream: str) -> None:
-		if event.get("type") == "ready":
+		if event.get("type") == "capture_device" and stream == STREAM_SYSTEM_AUDIO:
+			with self._lock:
+				if generation == self._generation and isinstance(event.get("device_id"), str):
+					self._systemCaptureDeviceId = event["device_id"]
+		elif event.get("type") == "ready":
 			with self._lock:
 				if (
 					generation != self._generation
