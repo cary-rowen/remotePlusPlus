@@ -1,6 +1,6 @@
 # Unit Testing
 
-This template provides a built-in unit testing structure powered by Python's standard `unittest` framework.
+This add-on uses Python's standard `unittest` framework. The full audio suite requires 64-bit Python for the bundled Opus DLL.
 
 ## Running Tests Locally
 
@@ -13,5 +13,5 @@ uv run python -m unittest discover -s tests -v
 Or execute tests for a specific file:
 
 ``` bash
-uv run python -m unittest -v tests/unit/template/test_sanity.py
+uv run python -m unittest -v tests/test_audio_service.py
 ```

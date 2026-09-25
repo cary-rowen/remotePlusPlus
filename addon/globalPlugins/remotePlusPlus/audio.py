@@ -58,16 +58,14 @@ class AudioSettings(NamedTuple):
 	channels: int = 2
 	frameMs: int = 10
 
-	def formatFields(self) -> dict[str, str | int]:
+	def envelopeFields(self) -> dict[str, str | int]:
 		return {
 			"codec": "opus",
 			"bitrate_kbps": self.bitrateKbps,
 			"channels": self.channels,
 			"frame_ms": self.frameMs,
+			"buffer_ms": self.bufferMs,
 		}
-
-	def envelopeFields(self) -> dict[str, str | int]:
-		return self.formatFields() | {"buffer_ms": self.bufferMs}
 
 
 def normalizeAudioSettings(value: Any) -> AudioSettings:
@@ -268,7 +266,6 @@ class AudioService:
 	def __init__(self) -> None:
 		self._lock = RLock()
 		self._runtimes: dict[str, AudioRuntime] = {}
-		self._runtime: AudioRuntime | None = None
 		self._threads: list[Thread] = []
 		self._closed = False
 		self._generation = 0
@@ -470,7 +467,6 @@ class AudioService:
 				runtimes = {}
 			else:
 				self._runtimes = runtimes
-				self._runtime = next(iter(runtimes.values()), None)
 				self._generation = generation
 				self._role, self._sources = role, normalized_sources
 				self._systemCaptureDeviceId = None
@@ -534,7 +530,6 @@ class AudioService:
 			runtimes = tuple(self._runtimes.values())
 			self._generation += 1
 			self._runtimes.clear()
-			self._runtime = None
 			self._role = None
 			self._sources = 0
 			self._systemCaptureDeviceId = None
@@ -626,8 +621,6 @@ class AudioService:
 				if generation != self._generation:
 					return
 				self._runtimes.pop(stream, None)
-				if self._runtime is runtime:
-					self._runtime = next(iter(self._runtimes.values()), None)
 				notification = None
 				if not self._runtimes:
 					self._role = None

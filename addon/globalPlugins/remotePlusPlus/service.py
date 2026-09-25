@@ -196,19 +196,6 @@ class ConnectionManager:
 			return self.getAudioSettings()
 		return normalizeAudioSettings(value)
 
-	def setVoiceAudioSettings(self, settings: AudioSettings) -> bool:
-		if normalizeAudioSettings(settings._asdict()) != settings:
-			return False
-		old = self.data.get("voice_audio_settings")
-		self.data["voice_audio_settings"] = settings._asdict()
-		if self.saveConfig():
-			return True
-		if old is None:
-			self.data.pop("voice_audio_settings", None)
-		else:
-			self.data["voice_audio_settings"] = old
-		return False
-
 	def getCloseOnConnect(self) -> bool:
 		"""Return whether to close the dialog after connecting."""
 		return self.data.get("close_on_connect", True)
@@ -277,11 +264,10 @@ class ConnectionManager:
 		self.saveConfig()
 		return True
 
-	def deleteGroup(self, groupName: str, moveItemsToDefault: bool = True) -> bool:
-		"""Delete a group.
+	def deleteGroup(self, groupName: str) -> bool:
+		"""Delete a group and move its connections to the default group.
 
 		:param groupName: The name of the group to delete.
-		:param moveItemsToDefault: If True, move connections to the default group.
 		:return: True if successful, False if the group cannot be deleted.
 		"""
 		if groupName == self.DEFAULT_GROUP:
@@ -289,9 +275,7 @@ class ConnectionManager:
 		if groupName not in self.data["groups"]:
 			return False
 
-		if moveItemsToDefault:
-			items = self.data["groups"][groupName]
-			self.data["groups"][self.DEFAULT_GROUP].extend(items)
+		self.data["groups"][self.DEFAULT_GROUP].extend(self.data["groups"][groupName])
 
 		del self.data["groups"][groupName]
 		if self.data["active_group"] == groupName:

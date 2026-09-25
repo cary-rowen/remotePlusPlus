@@ -419,8 +419,6 @@ class MenuHandler:
 
 		:param connected: Whether the connection is active.
 		"""
-		if self._manageItem:
-			self._manageItem.Enable(True)
 		if self._swapItem:
 			self._swapItem.Enable(connected)
 		if self._connectDefaultItem:
@@ -945,13 +943,15 @@ class ConnectionManagerDialog(wx.Dialog):
 		return [c for c in connections if query in c["name"].lower() or query in c["host"].lower()]
 
 	def refresh_list(self, selected_id: str | None = None) -> None:
+		connections = self.get_filtered_connections()
+		if selected_id is not None and not any(conn["id"] == selected_id for conn in connections):
+			selected_id = None
 		if selected_id is None and self.list.GetItemCount() > 0:
 			idx = self.list.GetFirstSelected()
 			if idx != -1 and idx < len(self._current_connections_view):
 				selected_id = self._current_connections_view[idx]["id"]
 
 		self.list.DeleteAllItems()
-		connections = self.get_filtered_connections()
 		self._current_connections_view = connections
 
 		mode_labels = {
@@ -1096,13 +1096,7 @@ class ConnectionManagerDialog(wx.Dialog):
 				data["mode"],
 				data.get("selfHosted", False),
 			)
-			self.refresh_list()
-			for i in range(self.list.GetItemCount()):
-				if self._current_connections_view[i]["id"] == newId:
-					self.list.Select(i)
-					self.list.Focus(i)
-					self.list.SetFocus()
-					break
+			self.refresh_list(selected_id=newId)
 		dlg.Destroy()
 
 	def on_edit(self, evt: wx.CommandEvent) -> None:

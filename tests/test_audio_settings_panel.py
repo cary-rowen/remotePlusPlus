@@ -141,6 +141,49 @@ class SettingsPanelTests(unittest.TestCase):
 		self.assertEqual(panel.microphoneChoice.GetStringSelection(), "Selected device (unavailable)")
 		panel.Destroy()
 
+		module.__dict__["pgettext"] = lambda context, text: text
+		connections = [
+			{"id": "first", "name": "match first", "host": "first.example", "mode": "leader"},
+			{"id": "second", "name": "match second", "host": "second.example", "mode": "leader"},
+		]
+		manager = Mock()
+		manager.getConnections.side_effect = lambda group: connections
+
+		def addConnection(*args):
+			connections.append({"id": "new", "name": "Other", "host": "other.example", "mode": "leader"})
+			return "new"
+
+		manager.addConnection.side_effect = addConnection
+		connectionList = wx.ListCtrl(frame, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
+		for index, title in enumerate(("Name", "Host", "Mode")):
+			connectionList.InsertColumn(index, title)
+		groupChoice = wx.Choice(frame, choices=["Default"])
+		groupChoice.SetSelection(0)
+		dialog = SimpleNamespace(
+			manager=manager,
+			groupCombo=groupChoice,
+			searchCtrl=wx.TextCtrl(frame, value="match"),
+			list=connectionList,
+			_current_connections_view=[],
+			_autoSizeColumns=Mock(),
+			on_selection_change=Mock(),
+			FindFocus=lambda: connectionList,
+		)
+		dialog.get_filtered_connections = module.ConnectionManagerDialog.get_filtered_connections.__get__(
+			dialog
+		)
+		dialog.refresh_list = module.ConnectionManagerDialog.refresh_list.__get__(dialog)
+		dialog.refresh_list()
+		connectionList.Select(1)
+		self.assertEqual(connectionList.GetFirstSelected(), 1)
+		editor = Mock(
+			result={"name": "Other", "host": "other.example", "key": "key", "port": 6837, "mode": "leader"}
+		)
+		editor.ShowModal.return_value = wx.ID_OK
+		with patch.object(module, "ConnectionEditorDialog", return_value=editor):
+			module.ConnectionManagerDialog.on_new(dialog, None)
+		self.assertEqual(connectionList.GetFirstSelected(), 1)
+
 
 if __name__ == "__main__":
 	unittest.main()

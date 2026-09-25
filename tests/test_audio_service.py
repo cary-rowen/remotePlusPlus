@@ -297,11 +297,11 @@ class AudioServiceTests(unittest.TestCase):
 	def testOldProcessCannotChangeRestartedSession(self):
 		service = AudioService()
 		old = runtimeWithEvents({"type": "ready"}, {"type": "error", "message": "old error"})
-		service._runtime = old
+		service._runtimes = {"system_audio": old}
 		service._generation = 1
 		service.stop()
 		current = object()
-		service._runtime = current
+		service._runtimes = {"system_audio": current}
 		service._generation += 1
 		service._state = "starting"
 		callback = Mock()
@@ -309,16 +309,15 @@ class AudioServiceTests(unittest.TestCase):
 		service._run(old, 1)
 		self.assertEqual(service.state, "starting")
 		self.assertIsNone(service.error)
-		self.assertIs(service._runtime, current)
+		self.assertIs(service._runtimes["system_audio"], current)
 		callback.assert_not_called()
 
-	def testProcessExitPreservesSpecificErrorAndClosesPipes(self):
+	def testProcessExitPreservesSpecificError(self):
 		service = AudioService()
 		process = runtimeWithEvents(
 			{"type": "ready"},
 			{"type": "error", "code": "audio_device_failed", "message": "capture disconnected"},
 		)
-		service._runtime = process
 		service._generation = 1
 		with self.assertLogs(level="ERROR") as logs:
 			service._run(process, 1)
@@ -326,7 +325,6 @@ class AudioServiceTests(unittest.TestCase):
 		self.assertEqual(service.error, "The audio device is unavailable or stopped working.")
 		self.assertEqual(service.errorCode, "audio_device_failed")
 		self.assertIn("capture disconnected", "\n".join(logs.output))
-		self.assertIsNone(service._runtime)
 
 	def testUnknownAndLegacyErrorDetailsAreLoggedButNeverSpoken(self):
 		for code in (None, "future_error", [], "udp_registration_failed", "no_microphone"):
@@ -334,7 +332,6 @@ class AudioServiceTests(unittest.TestCase):
 			process = runtimeWithEvents(
 				{"type": "error", "code": code, "message": "raw driver/network detail"},
 			)
-			service._runtime = process
 			with patch.object(audioModule, "_", side_effect=lambda value: "translated: " + value):
 				with self.assertLogs(level="ERROR") as logs:
 					service._run(process, 0)
