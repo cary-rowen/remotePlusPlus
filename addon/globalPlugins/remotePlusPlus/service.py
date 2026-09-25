@@ -31,6 +31,7 @@ import _remoteClient
 from _remoteClient.connectionInfo import ConnectionInfo, ConnectionMode
 from _remoteClient.protocol import RemoteMessageType, addressToHostPort
 from config.configFlags import RemoteConnectionMode
+from utils import mmdevice
 
 from .audio import (
 	AUDIO_ENVELOPE_KEY,
@@ -417,6 +418,8 @@ class RemoteService:
 		self._speechSuppressionGeneration = 0
 		self._remoteAudioIncludesSpeech = False
 		self._publisherSpeechAvailable = False
+		self._publisherOutputDevice: str | None = None
+		self._publisherOutputDeviceAvailable = False
 		self._audioFollowers: set[int] = set()
 		self._originalAudioSend: Callable | None = None
 		self._audioSendWrapper: Callable | None = None
@@ -636,15 +639,32 @@ class RemoteService:
 			return False
 		if threading.current_thread() is not threading.main_thread():
 			return self._publisherSpeechAvailable
-		# NVDA and WASAPI capture follow the default eConsole endpoint. For explicitly selected
-		# devices, keep Remote speech even if that device happens to be default now.
+		# NVDA and WASAPI capture follow the default eConsole endpoint. If a saved explicit
+		# device no longer exists, NVDA falls back to that endpoint as well.
+		outputDevice = config.conf["audio"]["outputDevice"]
+		defaultOutputDevice = config.conf.getConfigValidation(("audio", "outputDevice")).default
+		if outputDevice == defaultOutputDevice:
+			self._publisherOutputDevice = None
+			usesDefaultOutput = True
+		elif outputDevice != self._publisherOutputDevice:
+			try:
+				self._publisherOutputDeviceAvailable = any(
+					device.id == outputDevice for device in mmdevice.getOutputDevices()
+				)
+			except Exception:
+				# Preserve the conservative behavior if device enumeration is unavailable.
+				log.debug("Could not inspect the configured audio output device", exc_info=True)
+				self._publisherOutputDeviceAvailable = True
+			self._publisherOutputDevice = outputDevice
+			usesDefaultOutput = not self._publisherOutputDeviceAvailable
+		else:
+			usesDefaultOutput = not self._publisherOutputDeviceAvailable
 		synth = synthDriverHandler.getSynth()
 		self._publisherSpeechAvailable = bool(
 			synth is not None
 			and synth.name != "silence"
 			and (not synth.isSupported("volume") or synth.volume > 0)
-			and config.conf["audio"]["outputDevice"]
-			== config.conf.getConfigValidation(("audio", "outputDevice")).default,
+			and usesDefaultOutput,
 		)
 		return self._publisherSpeechAvailable
 
@@ -1245,6 +1265,8 @@ class RemoteService:
 			self._audioPeerId = None
 			self._activeAudioRequestId = None
 			self._remoteAudioIncludesSpeech = False
+			self._publisherOutputDevice = None
+			self._publisherOutputDeviceAvailable = False
 			self._queueAudioTask(self._stopNativeAudio, error)
 
 	def _stopNativeAudio(self, error: str | None) -> None:

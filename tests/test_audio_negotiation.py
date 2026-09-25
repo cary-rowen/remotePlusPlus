@@ -38,6 +38,9 @@ def loadService():
 	path = Path(__file__).parents[1] / "addon/globalPlugins/remotePlusPlus/service.py"
 	spec = importlib.util.spec_from_file_location("remote_test.service", path)
 	module = importlib.util.module_from_spec(spec)
+	fakeMmdevice = SimpleNamespace(
+		getOutputDevices=lambda: (SimpleNamespace(id="headset"),),
+	)
 	with patch.dict(
 		"sys.modules",
 		{
@@ -51,6 +54,7 @@ def loadService():
 				queueFunction=lambda queue, function, *args, **kwargs: function(*args, **kwargs),
 			),
 			"config": SimpleNamespace(conf=FakeConfig(audio={"outputDevice": "default"})),
+			"utils": SimpleNamespace(mmdevice=fakeMmdevice),
 			"extensionPoints": SimpleNamespace(
 				callWithSupportedKwargs=lambda handler, **payload: handler(**payload),
 			),
@@ -779,6 +783,14 @@ class AudioNegotiationTests(unittest.TestCase):
 		self.service._handleAudioRequest(request, 7, self.service._audioEpoch)
 		response = self.sent.call_args.kwargs[audioModule.AUDIO_ENVELOPE_KEY]
 		self.assertIs(response["includes_nvda_speech"], False)
+
+	def testPublisherMissingOutputDeviceUsesDefaultSpeechCoverage(self):
+		self.info.mode = "slave"
+		serviceModule.config.conf["audio"]["outputDevice"] = "missing"
+		with patch.object(serviceModule.mmdevice, "getOutputDevices", return_value=()) as getOutputDevices:
+			self.assertTrue(self.service._publisherIncludesSpeech(1))
+			self.assertTrue(self.service._publisherIncludesSpeech(1))
+		getOutputDevices.assert_called_once_with()
 
 	def testReconnectSnapshotReplacesStaleCoreFollowers(self):
 		self.respond(self.request(), includes_nvda_speech=True)
