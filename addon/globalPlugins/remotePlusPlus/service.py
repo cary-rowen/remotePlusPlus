@@ -688,7 +688,7 @@ class RemoteService:
 		return bool(
 			self._publisherSpeechAvailable
 			and self._publisherNvdaOutputDeviceId
-			and self._publisherNvdaOutputDeviceId == self.audio.systemCaptureDeviceId
+			and self._publisherNvdaOutputDeviceId == self.audio.systemCaptureDeviceId,
 		)
 
 	def _handlePublisherSynthChanged(self, **kwargs: Any) -> None:

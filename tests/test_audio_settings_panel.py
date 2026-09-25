@@ -65,7 +65,7 @@ class SettingsPanelTests(unittest.TestCase):
 				"pycaw.utils": SimpleNamespace(
 					AudioUtilities=SimpleNamespace(
 						GetAllDevices=lambda **kwargs: [
-							SimpleNamespace(id="microphone", FriendlyName="Microphone")
+							SimpleNamespace(id="microphone", FriendlyName="Microphone"),
 						],
 					),
 				),
@@ -130,7 +130,7 @@ class SettingsPanelTests(unittest.TestCase):
 		panel.microphoneChoice.SetSelection(1)
 		panel.onSave()
 		service.saveAudioPreferences.assert_called_with(
-			AudioSettings(), AudioSettings(), ("speakers", "microphone")
+			AudioSettings(), AudioSettings(), ("speakers", "microphone"),
 		)
 		panel.Destroy()
 
@@ -170,14 +170,14 @@ class SettingsPanelTests(unittest.TestCase):
 			FindFocus=lambda: connectionList,
 		)
 		dialog.get_filtered_connections = module.ConnectionManagerDialog.get_filtered_connections.__get__(
-			dialog
+			dialog,
 		)
 		dialog.refresh_list = module.ConnectionManagerDialog.refresh_list.__get__(dialog)
 		dialog.refresh_list()
 		connectionList.Select(1)
 		self.assertEqual(connectionList.GetFirstSelected(), 1)
 		editor = Mock(
-			result={"name": "Other", "host": "other.example", "key": "key", "port": 6837, "mode": "leader"}
+			result={"name": "Other", "host": "other.example", "key": "key", "port": 6837, "mode": "leader"},
 		)
 		editor.ShowModal.return_value = wx.ID_OK
 		with patch.object(module, "ConnectionEditorDialog", return_value=editor):

@@ -265,7 +265,7 @@ class AudioNegotiationTests(unittest.TestCase):
 				patch.object(self.service, "applyAudioSettings") as apply,
 			):
 				self.assertFalse(
-					self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), (None, None))
+					self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), (None, None)),
 				)
 				apply.assert_not_called()
 		self.assertEqual(manager.getAudioSettings(), settings)
@@ -274,11 +274,11 @@ class AudioNegotiationTests(unittest.TestCase):
 	def testDeviceChangeRequestsRebuildOnlyForActiveCapture(self):
 		self.info.mode = "slave"
 		self.service._handleAudioRequest(
-			makeEnvelope("request", request_id="active", sources=3), 7, self.service._audioEpoch
+			makeEnvelope("request", request_id="active", sources=3), 7, self.service._audioEpoch,
 		)
 		self.sent.reset_mock()
 		self.assertTrue(
-			self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), ("headset", None))
+			self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), ("headset", None)),
 		)
 		self.flush()
 		self.assertEqual(
@@ -288,8 +288,8 @@ class AudioNegotiationTests(unittest.TestCase):
 		self.sent.reset_mock()
 		self.assertTrue(
 			self.service.saveAudioPreferences(
-				AudioSettings(80, 64, 1, 20), AudioSettings(), ("headset", None)
-			)
+				AudioSettings(80, 64, 1, 20), AudioSettings(), ("headset", None),
+			),
 		)
 		self.flush()
 		self.sent.assert_not_called()
@@ -298,8 +298,8 @@ class AudioNegotiationTests(unittest.TestCase):
 		self.sent.reset_mock()
 		self.assertTrue(
 			self.service.saveAudioPreferences(
-				AudioSettings(80, 64, 1, 20), AudioSettings(), (None, "microphone")
-			)
+				AudioSettings(80, 64, 1, 20), AudioSettings(), (None, "microphone"),
+			),
 		)
 		self.flush()
 		self.sent.assert_not_called()
@@ -351,12 +351,12 @@ class AudioNegotiationTests(unittest.TestCase):
 		with patch.object(self.service.audio, "stop", side_effect=pausedStop):
 			request = makeEnvelope("request", request_id="active", sources=1)
 			requestTask = self.service._audioWorker.submit(
-				self.service._handleAudioRequest, request, 7, self.service._audioEpoch
+				self.service._handleAudioRequest, request, 7, self.service._audioEpoch,
 			)
 			try:
 				self.assertTrue(stopping.wait(2))
 				self.assertTrue(
-					self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), ("headset", None))
+					self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), ("headset", None)),
 				)
 			finally:
 				continueStop.set()
@@ -378,7 +378,7 @@ class AudioNegotiationTests(unittest.TestCase):
 		with patch.object(self.service.audio, "start", side_effect=pausedStart):
 			request = makeEnvelope("request", request_id="active", sources=1)
 			requestTask = self.service._audioWorker.submit(
-				self.service._handleAudioRequest, request, 7, self.service._audioEpoch
+				self.service._handleAudioRequest, request, 7, self.service._audioEpoch,
 			)
 			try:
 				self.assertTrue(started.wait(2))
@@ -388,7 +388,7 @@ class AudioNegotiationTests(unittest.TestCase):
 				def save():
 					saveStarted.set()
 					saveResult.append(
-						self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), ("headset", None))
+						self.service.saveAudioPreferences(AudioSettings(), AudioSettings(), ("headset", None)),
 					)
 
 				saveThread = threading.Thread(target=save)
@@ -951,7 +951,7 @@ class AudioNegotiationTests(unittest.TestCase):
 		publisher.getClient = self.service.getClient
 		publisher._registerAudioTransport(self.transport)
 		publisher._handleAudioRequest(
-			makeEnvelope("request", request_id="active", sources=1), 7, publisher._audioEpoch
+			makeEnvelope("request", request_id="active", sources=1), 7, publisher._audioEpoch,
 		)
 
 		for captureDeviceId, included in (("headset", False), ("speakers", True)):

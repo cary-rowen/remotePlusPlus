@@ -460,7 +460,7 @@ class DeviceIdTests(unittest.TestCase):
 					patch.object(self.capture, "_capture", side_effect=run),
 				):
 					self.capture.capture(
-						threading.Event(), True, 48000, 2, Mock(), received, "selected", opened
+						threading.Event(), True, 48000, 2, Mock(), received, "selected", opened,
 					)
 				self.assertEqual(attempts, ["selected", None])
 				received.assert_called_once_with(b"", True)
@@ -481,7 +481,7 @@ class DeviceIdTests(unittest.TestCase):
 					self.assertRaises(type(failure)) as raised,
 				):
 					self.capture.capture(
-						threading.Event(), True, 48000, 2, Mock(), received, "selected", opened
+						threading.Event(), True, 48000, 2, Mock(), received, "selected", opened,
 					)
 				self.assertIs(raised.exception, failure)
 				attempt.assert_called_once()
@@ -502,7 +502,7 @@ class DeviceIdTests(unittest.TestCase):
 					self.assertRaises(self.capture._SelectedEndpointUnavailable),
 				):
 					self.capture._capture(
-						threading.Event(), True, 48000, 2, Mock(), Mock(), "selected", Mock()
+						threading.Event(), True, 48000, 2, Mock(), Mock(), "selected", Mock(),
 					)
 				device.Activate.assert_not_called()
 

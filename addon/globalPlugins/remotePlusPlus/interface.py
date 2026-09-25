@@ -65,7 +65,7 @@ class RemotePlusPlusSettingsPanel(SettingsPanel):
 			self,
 			# Translators: Audio transmission quality is selected by the controller; capture devices are local.
 			label=_(
-				"The controller chooses audio transmission settings; each computer chooses its audio devices."
+				"The controller chooses audio transmission settings; each computer chooses its audio devices.",
 			),
 		)
 		explanation.Wrap(self.scaleSize(500))

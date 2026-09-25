@@ -78,7 +78,7 @@ class AudioServiceTests(unittest.TestCase):
 		):
 			self.assertTrue(
 				service.start(
-					"remote.example", "master", "room", settings=settings, systemDeviceId="speakers"
+					"remote.example", "master", "room", settings=settings, systemDeviceId="speakers",
 				),
 			)
 		start.assert_called_once_with(
@@ -94,13 +94,13 @@ class AudioServiceTests(unittest.TestCase):
 		)
 		self.assertEqual(service.settings, settings)
 		service._event(
-			{"type": "capture_device", "device_id": "speakers"}, service.generation, "system_audio"
+			{"type": "capture_device", "device_id": "speakers"}, service.generation, "system_audio",
 		)
 		self.assertEqual(service.systemCaptureDeviceId, "speakers")
 		service.stop()
 		self.assertIsNone(service.systemCaptureDeviceId)
 		service._event(
-			{"type": "capture_device", "device_id": "stale"}, service.generation - 1, "system_audio"
+			{"type": "capture_device", "device_id": "stale"}, service.generation - 1, "system_audio",
 		)
 		self.assertIsNone(service.systemCaptureDeviceId)
 		runtime.stop.assert_called_once()
