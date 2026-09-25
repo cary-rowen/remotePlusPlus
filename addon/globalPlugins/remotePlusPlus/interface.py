@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2025 Cary-rowen <manchen_0528@outlook.com>
+# Copyright (C) 2026 Cary-rowen
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 

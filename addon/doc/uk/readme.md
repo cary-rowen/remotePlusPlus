@@ -74,7 +74,7 @@
 
 ## Автор
 
-Cary-rowen <manchen_0528@outlook.com>
+Cary-rowen <cary-rowen@outlook.com>
 
 ## Аудіо з малою затримкою
 

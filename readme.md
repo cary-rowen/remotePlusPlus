@@ -123,4 +123,4 @@ To ensure maximum security and prevent unintended access, this add-on is disable
 
 ## Author
 
-Cary-rowen <manchen_0528@outlook.com>
+Cary-rowen <cary-rowen@outlook.com>

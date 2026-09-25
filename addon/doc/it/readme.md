@@ -74,7 +74,7 @@ Per garantire la massima sicurezza e impedire accessi involontari, questo compon
 
 ## Autore
 
-Cary-rowen <manchen_0528@outlook.com>
+Cary-rowen <cary-rowen@outlook.com>
 
 ## Audio a bassa latenza
 

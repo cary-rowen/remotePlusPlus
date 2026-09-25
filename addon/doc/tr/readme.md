@@ -74,7 +74,7 @@ Maksimum güvenliği sağlamak ve istenmeyen erişimi önlemek için, bu eklenti
 
 ## Geliştirici
 
-Cary-rowen <manchen_0528@outlook.com>
+Cary-rowen <cary-rowen@outlook.com>
 
 ## Düşük gecikmeli ses
 

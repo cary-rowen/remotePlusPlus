@@ -38,7 +38,7 @@ addon_info = AddonInfo(
 - Add Turkish translation.
 """),
 	# Author(s)
-	addon_author="Cary-rowen <manchen_0528@outlook.com>",
+	addon_author="Cary-rowen <cary-rowen@outlook.com>",
 	# URL for the add-on documentation support
 	addon_url="https://github.com/cary-rowen/remotePlusPlus",
 	# URL for the add-on repository where the source code can be found

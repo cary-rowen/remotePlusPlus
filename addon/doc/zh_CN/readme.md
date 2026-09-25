@@ -123,4 +123,4 @@ Remote++ 可以通过 [NVDARemoteAudioServer](https://github.com/haitun001/NVDAR
 
 ## 作者
 
-Cary-rowen <manchen_0528@outlook.com>
+Cary-rowen <cary-rowen@outlook.com>
