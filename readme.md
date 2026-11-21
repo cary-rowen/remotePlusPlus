@@ -27,6 +27,10 @@ Remote++ can relay remote audio through [NVDARemoteAudioServer](https://github.c
 
 Audio is off by default. The controlling computer can enable it from NVDA's built-in Remote Access menu. Both computers must run an audio-capable version of Remote++ and connect through NVDA's built-in Remote Access.
 
+For a Linux controlled computer running Linda, see the experimental
+[Linda system audio companion](extras/lindaRemoteAudio/README.md). It is built
+and installed separately from the Windows add-on and supports system sound publishing only.
+
 ### Listen to remote system sounds
 
 This option sends sound from the controlled computer's selected system sound device to the controlling computer. The controlled computer initially uses the Windows default output device.
