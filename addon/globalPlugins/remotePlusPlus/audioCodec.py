@@ -1,6 +1,7 @@
 """One libopus state per audio worker; no NVDA or device dependencies."""
 
 import ctypes
+import sys
 from functools import lru_cache
 from pathlib import Path
 
@@ -11,7 +12,11 @@ RATE = 48000
 
 @lru_cache(maxsize=1)
 def loadLibrary() -> ctypes.CDLL:
-	library = ctypes.CDLL(str(Path(__file__).resolve().parent / "lib" / "opus.dll"))
+	library = ctypes.CDLL(
+		"libopus.so.0"
+		if sys.platform == "linux"
+		else str(Path(__file__).resolve().parent / "lib" / "opus.dll"),
+	)
 	library.opus_encoder_create.argtypes = [
 		ctypes.c_int,
 		ctypes.c_int,

@@ -1,0 +1,10 @@
+name = lindaRemoteAudio
+summary = "Linda Remote Audio Bridge"
+description = """Publishes Linux system audio to a Remote++ controller. Requires PulseAudio or PipeWire, parec, and system libopus. Voice calls are not supported."""
+author = "Remote++ contributors"
+url = https://github.com/cary-rowen/remotePlusPlus
+version = 0.1.0
+minimumNVDAVersion = 2026.1.0
+lastTestedNVDAVersion = 2026.3.1
+updateChannel = None
+platforms = linux
